@@ -1,0 +1,27 @@
+services:
+  research:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+      - ./configs:/app/configs:ro
+    command: ["--help"]
+
+  orchestrator:
+    build: .
+    entrypoint: ["python", "-m", "orchestrator.cli"]
+    command: ["service"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PROJECT_ROOT: /workspace
+      ORCHESTRATOR_STATE_DIR: /workspace/orchestrator_state
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    restart: unless-stopped
+    profiles: ["orchestrator"]

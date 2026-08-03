@@ -1,0 +1,91 @@
+version: 1
+project_name: Pump/Dump Intelligence Engine
+project_goal: build_explainable_pump_dump_intelligence_engine
+
+mandatory_components:
+  - spot_market_analysis
+  - futures_market_analysis
+  - spot_order_book
+  - futures_order_book
+  - whale_wall_tracking
+  - spoofing_detection
+  - iceberg_and_absorption_detection
+  - open_interest
+  - funding
+  - liquidations
+  - spot_futures_divergence
+  - market_phase_detection
+  - pump_cause_hypotheses
+  - dump_mechanism_hypotheses
+  - contradiction_engine
+  - evidence_report
+  - prospective_testing
+  - live_paper_monitoring
+
+required_analysis_output:
+  - market_phase
+  - likely_pump_causes
+  - spot_role
+  - futures_role
+  - open_interest_state
+  - funding_and_leverage
+  - liquidation_state
+  - spot_order_book_evidence
+  - futures_order_book_evidence
+  - whale_limit_orders
+  - spoofing_evidence
+  - iceberg_evidence
+  - absorption_evidence
+  - liquidity_pull_evidence
+  - spot_futures_divergence
+  - technical_structure
+  - onchain_and_news_context
+  - supporting_evidence
+  - contradictions
+  - missing_data
+  - alternative_scenarios
+  - invalidation_conditions
+  - observed_outcome
+
+forbidden_shortcuts:
+  - single_probability_only
+  - claim_whale_activity_without_evidence
+  - claim_spoofing_as_fact_without_execution_history
+  - use_future_data_in_features
+  - train_and_test_on_same_event
+  - silently_ignore_missing_sources
+  - silently_change_target_definition
+  - automatically_trade
+  - automatically_withdraw_funds
+  - expose_secrets_in_git_logs_reports_or_telegram
+  - weaken_tests_to_make_a_change_pass
+
+independent_evidence_groups:
+  - order_flow
+  - derivatives
+  - order_book_liquidity
+  - price_structure
+  - spot_futures_divergence
+  - onchain
+  - news_and_market_context
+
+alert_policy:
+  red_alert_min_independent_groups: 3
+  require_contradiction_search: true
+  require_missing_data_disclosure: true
+  require_invalidation_conditions: true
+  require_data_quality_score: true
+  no_automatic_trading: true
+
+governance:
+  protected_paths:
+    - PROJECT_CONSTITUTION.yaml
+    - ROADMAP.yaml
+    - orchestrator/constitution.py
+    - orchestrator/pipeline.py
+    - orchestrator/telegram.py
+  critical_changes_require_explicit_approval: true
+  serious_changes_require_telegram_approval: true
+  allow_unattended_low_risk_changes: false
+  retain_decision_audit_log: true
+  secrets_must_remain_local: true

@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Prospective Protocol v0.2.4</title><style>
+body { font-family: system-ui, sans-serif; max-width: 1260px; margin: 36px auto; padding: 0 18px; color: #17202a; }
+h1, h2, h3 { color: #102a43; }
+.card { border: 1px solid #d9e2ec; border-radius: 12px; padding: 16px; margin: 14px 0; background: #f8fbff; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0 18px; }
+th, td { border: 1px solid #d9e2ec; padding: 8px; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+.good { color: #137333; font-weight: 700; }
+.warn { color: #b06000; font-weight: 700; }
+code { background: #eef2f6; padding: 2px 5px; border-radius: 4px; }
+.small { color: #52606d; font-size: 0.92rem; }
+.scroll { overflow-x: auto; }
+</style></head>
+<body>
+<h1>Purged Walk-Forward LOSO — v0.2.4</h1>
+<div class="card">
+<p><strong>Цель:</strong> <code>dump_8_15m</code></p>
+<p><strong>Модель:</strong> <code>logistic_regression</code></p>
+<p><strong>Один глобальный порог:</strong> 0.10 — выбран только на ранних out-of-symbol calibration событиях.</p>
+<p><strong>Purging:</strong> 60 минут. Для каждого evaluation-события обучение использует только завершившиеся события других контрактов из прошлого.</p>
+<p><strong>Начало calibration:</strong> 2025-01-28T00:00:00+00:00; <strong>начало prospective evaluation:</strong> 2025-02-06T00:00:00+00:00.</p>
+</div>
+<h2>Pooled snapshot-метрики</h2>
+<div class="scroll"><table><thead><tr><th>PR-AUC</th><th>ROC-AUC</th><th>Precision</th><th>Recall</th><th>F1</th><th>Brier</th><th>Глобальный порог</th></tr></thead>
+<tbody><tr><td>0.383</td><td>0.857</td><td>0.375</td><td>1.000</td><td>0.545</td><td>0.115</td><td>0.10</td></tr></tbody></table></div>
+<h2>Pooled event-level метрики</h2>
+<div class="scroll"><table><thead><tr><th>Event precision [95% CI]</th><th>Event recall [95% CI]</th><th>Event F1 [95% CI]</th><th>TP</th><th>FP</th><th>False events / 100 symbol-days</th><th>Symbols detected</th></tr></thead>
+<tbody><tr><td>0.600 [0.129–1.000]</td><td>1.000 [1.000–1.000]</td><td>0.750 [0.333–1.000]</td><td>3</td><td>2</td><td>6.69</td><td>3/3 (100.0%)</td></tr></tbody></table></div>
+<h2>Macro-метрики по контрактам</h2>
+<p class="small">Macro positive считает каждый контракт с хотя бы одним положительным event одинаково, поэтому крупная выборка одной монеты не доминирует.</p>
+<div class="scroll"><table><thead><tr><th>Группа</th><th>Macro PR-AUC</th><th>Macro event precision</th><th>Macro event recall</th><th>Macro event F1</th></tr></thead>
+<tbody>
+<tr><td>Все evaluation-контракты</td><td>0.500</td><td>0.778</td><td>1.000</td><td>0.833</td></tr>
+<tr><td>Контракты с положительными events</td><td>0.500</td><td>0.778</td><td>1.000</td><td>0.833</td></tr>
+</tbody></table></div>
+<h2>Распределение упреждения</h2>
+<div class="scroll"><table><thead><tr><th>P25, мин</th><th>Медиана, мин</th><th>P75, мин</th><th>Доля ≥5 мин</th><th>Доля ≥10 мин</th><th>Первый alert до peak, медиана</th></tr></thead>
+<tbody><tr><td>5.0</td><td>5.0</td><td>5.0</td><td>1.00</td><td>0.00</td><td>20.0</td></tr></tbody></table></div>
+<h2>Результаты по неизвестным контрактам</h2>
+<div class="scroll"><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>symbol</th>
+      <th>rows</th>
+      <th>positive_snapshots</th>
+      <th>events</th>
+      <th>positive_events</th>
+      <th>detected_events</th>
+      <th>false_positive_events</th>
+      <th>average_precision</th>
+      <th>snapshot_precision</th>
+      <th>snapshot_recall</th>
+      <th>event_precision</th>
+      <th>event_recall</th>
+      <th>event_f1</th>
+      <th>median_lead_minutes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AAAUSDT</td>
+      <td>8</td>
+      <td>1</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0.5000</td>
+      <td>0.5000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>5.0000</td>
+    </tr>
+    <tr>
+      <td>BBBUSDT</td>
+      <td>8</td>
+      <td>1</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0.5000</td>
+      <td>0.5000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>1.0000</td>
+      <td>5.0000</td>
+    </tr>
+    <tr>
+      <td>CCCUSDT</td>
+      <td>8</td>
+      <td>1</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+      <td>0.5000</td>
+      <td>0.2500</td>
+      <td>1.0000</td>
+      <td>0.3333</td>
+      <td>1.0000</td>
+      <td>0.5000</td>
+      <td>5.0000</td>
+    </tr>
+  </tbody>
+</table></div>
+<h2>Экспозиция</h2>
+<p>Всего: <strong>29.9</strong> symbol-days; ложных snapshot-alerts на 100 symbol-days: <strong>16.74</strong>.</p>
+<div class="scroll"><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>symbol</th>
+      <th>exposure_start</th>
+      <th>exposure_end</th>
+      <th>symbol_days</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AAAUSDT</td>
+      <td>2025-02-06 00:00:00+00:00</td>
+      <td>2025-02-15 23:00:00+00:00</td>
+      <td>9.958</td>
+    </tr>
+    <tr>
+      <td>BBBUSDT</td>
+      <td>2025-02-07 00:00:00+00:00</td>
+      <td>2025-02-16 23:00:00+00:00</td>
+      <td>9.958</td>
+    </tr>
+    <tr>
+      <td>CCCUSDT</td>
+      <td>2025-02-08 00:00:00+00:00</td>
+      <td>2025-02-17 23:00:00+00:00</td>
+      <td>9.958</td>
+    </tr>
+  </tbody>
+</table></div>
+<h2>Аудит walk-forward folds</h2>
+<p class="small">В каждой строке <code>train_max_event_end</code> должен быть раньше <code>event_start</code> минимум на purge-интервал, а holdout-контракт полностью отсутствует в train.</p>
+<div class="scroll"><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>fold_type</th>
+      <th>event_id</th>
+      <th>holdout_symbol</th>
+      <th>event_start</th>
+      <th>train_events</th>
+      <th>train_positive_events</th>
+      <th>train_max_event_end</th>
+      <th>features_used</th>
+      <th>status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>AAAUSDT-027</td>
+      <td>AAAUSDT</td>
+      <td>2025-01-28 00:00:00+00:00</td>
+      <td>18</td>
+      <td>6</td>
+      <td>2025-01-27 00:20:00+00:00</td>
+      <td>0</td>
+      <td>SKIPPED_MIN_TRAIN_EVENTS</td>
+    </tr>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>BBBUSDT-028</td>
+      <td>BBBUSDT</td>
+      <td>2025-01-29 00:00:00+00:00</td>
+      <td>19</td>
+      <td>6</td>
+      <td>2025-01-28 00:20:00+00:00</td>
+      <td>0</td>
+      <td>SKIPPED_MIN_TRAIN_EVENTS</td>
+    </tr>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>CCCUSDT-029</td>
+      <td>CCCUSDT</td>
+      <td>2025-01-30 00:00:00+00:00</td>
+      <td>20</td>
+      <td>7</td>
+      <td>2025-01-29 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>AAAUSDT-030</td>
+      <td>AAAUSDT</td>
+      <td>2025-01-31 00:00:00+00:00</td>
+      <td>20</td>
+      <td>7</td>
+      <td>2025-01-30 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>BBBUSDT-031</td>
+      <td>BBBUSDT</td>
+      <td>2025-02-01 00:00:00+00:00</td>
+      <td>21</td>
+      <td>6</td>
+      <td>2025-01-31 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>CCCUSDT-032</td>
+      <td>CCCUSDT</td>
+      <td>2025-02-02 00:00:00+00:00</td>
+      <td>22</td>
+      <td>7</td>
+      <td>2025-02-01 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>AAAUSDT-033</td>
+      <td>AAAUSDT</td>
+      <td>2025-02-03 00:00:00+00:00</td>
+      <td>22</td>
+      <td>8</td>
+      <td>2025-02-02 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>BBBUSDT-034</td>
+      <td>BBBUSDT</td>
+      <td>2025-02-04 00:00:00+00:00</td>
+      <td>23</td>
+      <td>8</td>
+      <td>2025-02-03 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>CALIBRATION</td>
+      <td>CCCUSDT-035</td>
+      <td>CCCUSDT</td>
+      <td>2025-02-05 00:00:00+00:00</td>
+      <td>24</td>
+      <td>8</td>
+      <td>2025-02-04 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>AAAUSDT-036</td>
+      <td>AAAUSDT</td>
+      <td>2025-02-06 00:00:00+00:00</td>
+      <td>24</td>
+      <td>8</td>
+      <td>2025-02-05 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>BBBUSDT-037</td>
+      <td>BBBUSDT</td>
+      <td>2025-02-07 00:00:00+00:00</td>
+      <td>25</td>
+      <td>9</td>
+      <td>2025-02-06 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>CCCUSDT-038</td>
+      <td>CCCUSDT</td>
+      <td>2025-02-08 00:00:00+00:00</td>
+      <td>26</td>
+      <td>9</td>
+      <td>2025-02-07 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>AAAUSDT-039</td>
+      <td>AAAUSDT</td>
+      <td>2025-02-09 00:00:00+00:00</td>
+      <td>26</td>
+      <td>8</td>
+      <td>2025-02-08 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>BBBUSDT-040</td>
+      <td>BBBUSDT</td>
+      <td>2025-02-10 00:00:00+00:00</td>
+      <td>27</td>
+      <td>9</td>
+      <td>2025-02-09 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>CCCUSDT-041</td>
+      <td>CCCUSDT</td>
+      <td>2025-02-11 00:00:00+00:00</td>
+      <td>28</td>
+      <td>10</td>
+      <td>2025-02-10 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>AAAUSDT-042</td>
+      <td>AAAUSDT</td>
+      <td>2025-02-12 00:00:00+00:00</td>
+      <td>28</td>
+      <td>9</td>
+      <td>2025-02-11 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>BBBUSDT-043</td>
+      <td>BBBUSDT</td>
+      <td>2025-02-13 00:00:00+00:00</td>
+      <td>29</td>
+      <td>9</td>
+      <td>2025-02-12 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>CCCUSDT-044</td>
+      <td>CCCUSDT</td>
+      <td>2025-02-14 00:00:00+00:00</td>
+      <td>30</td>
+      <td>10</td>
+      <td>2025-02-13 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>AAAUSDT-045</td>
+      <td>AAAUSDT</td>
+      <td>2025-02-15 00:00:00+00:00</td>
+      <td>30</td>
+      <td>10</td>
+      <td>2025-02-14 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>BBBUSDT-046</td>
+      <td>BBBUSDT</td>
+      <td>2025-02-16 00:00:00+00:00</td>
+      <td>31</td>
+      <td>10</td>
+      <td>2025-02-15 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+    <tr>
+      <td>EVALUATION</td>
+      <td>CCCUSDT-047</td>
+      <td>CCCUSDT</td>
+      <td>2025-02-17 00:00:00+00:00</td>
+      <td>32</td>
+      <td>10</td>
+      <td>2025-02-16 00:20:00+00:00</td>
+      <td>5</td>
+      <td>OK</td>
+    </tr>
+  </tbody>
+</table></div>
+<div class="card"><strong>Важно:</strong> Это строгий исторический prospective-style тест. Он не заменяет живой paper-monitoring и не является торговой рекомендацией.</div>
+<h2>Машиночитаемый summary</h2>
+<pre>{
+  &quot;threshold&quot;: null,
+  &quot;average_precision&quot;: 0.38333333333333336,
+  &quot;precision&quot;: 0.375,
+  &quot;recall&quot;: 1.0,
+  &quot;f1&quot;: 0.5454545454545454,
+  &quot;brier&quot;: 0.1153984138325247,
+  &quot;roc_auc&quot;: 0.8571428571428572,
+  &quot;false_alerts_per_day&quot;: 0.4544020195645314,
+  &quot;positives&quot;: 3,
+  &quot;rows&quot;: 24,
+  &quot;event_precision&quot;: 0.6,
+  &quot;event_recall&quot;: 1.0,
+  &quot;event_f1&quot;: 0.75,
+  &quot;actual_positive_events&quot;: 3,
+  &quot;predicted_events&quot;: 5,
+  &quot;true_positive_events&quot;: 3,
+  &quot;false_positive_events&quot;: 2,
+  &quot;false_events_per_day&quot;: 0.18176080782581258,
+  &quot;alerts_per_predicted_event&quot;: 1.6,
+  &quot;median_lead_to_first_positive_minutes&quot;: 5.0,
+  &quot;median_first_alert_minutes_before_peak&quot;: 20.0,
+  &quot;bootstrap_repeats&quot;: 2000,
+  &quot;event_precision_ci_low&quot;: 0.12857142857142936,
+  &quot;event_precision_ci_high&quot;: 1.0,
+  &quot;event_recall_ci_low&quot;: 1.0,
+  &quot;event_recall_ci_high&quot;: 1.0,
+  &quot;event_f1_ci_low&quot;: 0.33333333333333337,
+  &quot;event_f1_ci_high&quot;: 1.0,
+  &quot;calibration_event_f1&quot;: 1.0,
+  &quot;calibration_event_precision&quot;: 1.0,
+  &quot;global_threshold&quot;: 0.1,
+  &quot;purge_minutes&quot;: 60,
+  &quot;symbols_evaluated&quot;: 3,
+  &quot;symbols_with_positive_events&quot;: 3,
+  &quot;symbols_with_detected_positive_event&quot;: 3,
+  &quot;symbol_detection_coverage&quot;: 1.0,
+  &quot;macro_all_symbols&quot;: {
+    &quot;average_precision&quot;: 0.5,
+    &quot;event_precision&quot;: 0.7777777777777778,
+    &quot;event_recall&quot;: 1.0,
+    &quot;event_f1&quot;: 0.8333333333333334
+  },
+  &quot;macro_positive_symbols&quot;: {
+    &quot;average_precision&quot;: 0.5,
+    &quot;event_precision&quot;: 0.7777777777777778,
+    &quot;event_recall&quot;: 1.0,
+    &quot;event_f1&quot;: 0.8333333333333334
+  },
+  &quot;total_symbol_days&quot;: 29.875,
+  &quot;false_events_per_100_symbol_days&quot;: 6.694560669456067,
+  &quot;false_alerts_per_100_symbol_days&quot;: 16.736401673640167,
+  &quot;lead_minutes_p25&quot;: 5.0,
+  &quot;lead_minutes_median&quot;: 5.0,
+  &quot;lead_minutes_p75&quot;: 5.0,
+  &quot;lead_share_ge_5m&quot;: 1.0,
+  &quot;lead_share_ge_10m&quot;: 0.0
+}</pre>
+</body></html>

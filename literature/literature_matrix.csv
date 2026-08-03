@@ -1,0 +1,10 @@
+year,work,task,data,main_signal,method,main_limit,project_use
+2018,Kamps and Kleinberg,pump detection,multi-exchange OHLCV,local price and volume breakouts,threshold anomaly detection,fixed historical market structure,adaptive rule baseline
+2019,Xu and Livshits,target prediction,412 Telegram-organized events,market cap and short-window returns/volume,balanced random forest,event time and exchange known in advance,pump susceptibility and short-window features
+2020,La Morgia et al.,real-time pump detection,tick trades,rush orders and abrupt activity,real-time thresholds,detects pump rather than dump onset,second-level trade burst features
+2021,Cong et al. / Crypto Wash Trading,data quality,exchange trade distributions,suspicious trade-size and volume patterns,statistical tests,not a dump predictor,data-quality gate
+2024,Bolz et al.,target prediction,Telegram plus market data,NLP announcements and market features,ML pipeline,depends on public channels,optional social-risk module
+2025,Karbalaii,pump anomaly filtering,Poloniex OHLCV,EWMA plus volatility and double conditions,unsupervised thresholds,exchange-specific coefficients,noise normalization
+2025,Spoofability of Limit Order Books,liquidity manipulation,limit order books,order distance lifetime and cancellation,interpretable neural model,not crypto-pump-specific,future dynamic order-book module
+2026,Explainable Patterns in Cryptocurrency Microstructure,short-horizon microstructure,Binance Futures order books/order flow,OFI spread depth and adverse selection,explainable ML,very recent preprint,future order-flow module
+2026,Early-warning signals in liquidation cascades,crash early warning,crypto perpetual cascades,event-heterogeneous indicators,critical-transition analysis,no universal event signal,regime-specific meta-model

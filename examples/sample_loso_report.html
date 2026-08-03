@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>LOSO Evaluation v0.2.4</title><style>
+body { font-family: system-ui, sans-serif; max-width: 1260px; margin: 36px auto; padding: 0 18px; color: #17202a; }
+h1, h2, h3 { color: #102a43; }
+.card { border: 1px solid #d9e2ec; border-radius: 12px; padding: 16px; margin: 14px 0; background: #f8fbff; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0 18px; }
+th, td { border: 1px solid #d9e2ec; padding: 8px; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+.good { color: #137333; font-weight: 700; }
+.warn { color: #b06000; font-weight: 700; }
+code { background: #eef2f6; padding: 2px 5px; border-radius: 4px; }
+.small { color: #52606d; font-size: 0.92rem; }
+.scroll { overflow-x: auto; }
+</style></head>
+<body>
+<h1>Leave-One-Symbol-Out — v0.2.4</h1>
+<div class="card"><p>Цель: <code>correction_3_15m</code>. Каждый контракт по очереди полностью исключается из обучения и используется только как внешний test.</p></div>
+
+<h2>Snapshot-метрики на test</h2>
+<div class="scroll"><table><thead><tr><th>Модель</th><th>PR-AUC</th><th>ROC-AUC</th><th>Precision</th><th>Recall</th><th>F1</th><th>Brier</th><th>Ложных/день</th><th>Порог</th></tr></thead>
+<tbody><tr><td>logistic_regression</td><td>0.353</td><td>0.867</td><td>0.368</td><td>0.500</td><td>0.424</td><td>0.036</td><td>0.41</td><td>—</td></tr></tbody></table></div>
+
+
+<h2>Event-level метрики на test</h2>
+<p class="small">Доверительные интервалы рассчитаны grouped bootstrap по целым <code>event_id</code>. Lead time измеряется до первого snapshot, для которого целевое падение уже попадает в будущий горизонт.</p>
+<div class="scroll"><table><thead><tr><th>Модель</th><th>Event precision [95% CI]</th><th>Event recall [95% CI]</th><th>Event F1 [95% CI]</th><th>TP events</th><th>FP events</th><th>Ложных events/день</th><th>Alerts/event</th><th>Lead до первого positive, мин</th><th>Первый alert до peak, мин</th></tr></thead>
+<tbody><tr><td>logistic_regression</td><td>0.389 [0.229–0.556]</td><td>0.500 [0.312–0.688]</td><td>0.438 [0.274–0.580]</td><td>14</td><td>22</td><td>0.38</td><td>1.06</td><td>0.0</td><td>4.5</td></tr></tbody></table></div>
+
+<h2>Результаты по удержанным контрактам</h2>
+<div class="scroll"><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>holdout_symbol</th>
+      <th>model</th>
+      <th>status</th>
+      <th>test_rows</th>
+      <th>test_events</th>
+      <th>positive_snapshots</th>
+      <th>positive_events</th>
+      <th>features_used</th>
+      <th>features_dropped</th>
+      <th>threshold</th>
+      <th>average_precision</th>
+      <th>precision</th>
+      <th>recall</th>
+      <th>event_precision</th>
+      <th>event_recall</th>
+      <th>false_events_per_day</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>AAAUSDT</td>
+      <td>logistic_regression</td>
+      <td>OK</td>
+      <td>361</td>
+      <td>79</td>
+      <td>10</td>
+      <td>10</td>
+      <td>30</td>
+      <td></td>
+      <td>0.9400</td>
+      <td>0.2969</td>
+      <td>0.3333</td>
+      <td>0.1000</td>
+      <td>0.3333</td>
+      <td>0.1000</td>
+      <td>0.0342</td>
+    </tr>
+    <tr>
+      <td>BBBUSDT</td>
+      <td>logistic_regression</td>
+      <td>OK</td>
+      <td>371</td>
+      <td>79</td>
+      <td>12</td>
+      <td>12</td>
+      <td>30</td>
+      <td></td>
+      <td>0.8100</td>
+      <td>0.4208</td>
+      <td>0.4667</td>
+      <td>0.5833</td>
+      <td>0.5000</td>
+      <td>0.5833</td>
+      <td>0.1196</td>
+    </tr>
+    <tr>
+      <td>CCCUSDT</td>
+      <td>logistic_regression</td>
+      <td>OK</td>
+      <td>359</td>
+      <td>79</td>
+      <td>6</td>
+      <td>6</td>
+      <td>30</td>
+      <td></td>
+      <td>0.6600</td>
+      <td>0.5140</td>
+      <td>0.3000</td>
+      <td>1.0000</td>
+      <td>0.3158</td>
+      <td>1.0000</td>
+      <td>0.2221</td>
+    </tr>
+  </tbody>
+</table></div>
+<h2>Машиночитаемый pooled summary</h2>
+<pre>{
+  &quot;logistic_regression&quot;: {
+    &quot;threshold&quot;: null,
+    &quot;average_precision&quot;: 0.35330995567631923,
+    &quot;precision&quot;: 0.3684210526315789,
+    &quot;recall&quot;: 0.5,
+    &quot;f1&quot;: 0.42424242424242425,
+    &quot;brier&quot;: 0.03593481439118242,
+    &quot;roc_auc&quot;: 0.8674909286386239,
+    &quot;false_alerts_per_day&quot;: 0.41011035955856173,
+    &quot;positives&quot;: 28,
+    &quot;rows&quot;: 1091,
+    &quot;event_precision&quot;: 0.3888888888888889,
+    &quot;event_recall&quot;: 0.5,
+    &quot;event_f1&quot;: 0.4375,
+    &quot;actual_positive_events&quot;: 28,
+    &quot;predicted_events&quot;: 36,
+    &quot;true_positive_events&quot;: 14,
+    &quot;false_positive_events&quot;: 22,
+    &quot;false_events_per_day&quot;: 0.3759344962620149,
+    &quot;alerts_per_predicted_event&quot;: 1.0555555555555556,
+    &quot;median_lead_to_first_positive_minutes&quot;: 0.0,
+    &quot;median_first_alert_minutes_before_peak&quot;: 4.5,
+    &quot;bootstrap_repeats&quot;: 2000,
+    &quot;event_precision_ci_low&quot;: 0.22853896103896104,
+    &quot;event_precision_ci_high&quot;: 0.5555555555555556,
+    &quot;event_recall_ci_low&quot;: 0.3125,
+    &quot;event_recall_ci_high&quot;: 0.6875,
+    &quot;event_f1_ci_low&quot;: 0.2744652406417112,
+    &quot;event_f1_ci_high&quot;: 0.5798007246376807
+  }
+}</pre>
+</body></html>

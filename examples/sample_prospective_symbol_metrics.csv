@@ -1,0 +1,4 @@
+symbol,rows,positive_snapshots,events,positive_events,detected_events,false_positive_events,average_precision,snapshot_precision,snapshot_recall,event_precision,event_recall,event_f1,median_lead_minutes
+AAAUSDT,8,1,4,1,1,0,0.5,0.5,1.0,1.0,1.0,1.0,5.0
+BBBUSDT,8,1,4,1,1,0,0.5,0.5,1.0,1.0,1.0,1.0,5.0
+CCCUSDT,8,1,4,1,1,2,0.5,0.25,1.0,0.3333333333333333,1.0,0.5,5.0

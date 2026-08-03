@@ -1,0 +1,4 @@
+holdout_symbol,model,status,test_rows,test_events,positive_snapshots,positive_events,features_used,features_dropped,threshold,average_precision,precision,recall,event_precision,event_recall,false_events_per_day
+AAAUSDT,logistic_regression,OK,361,79,10,10,30,,0.9400000000000001,0.29687658899281205,0.3333333333333333,0.1,0.3333333333333333,0.1,0.034176268853314984
+BBBUSDT,logistic_regression,OK,371,79,12,12,30,,0.81,0.4208210278576412,0.4666666666666667,0.5833333333333334,0.5,0.5833333333333334,0.11963539688568173
+CCCUSDT,logistic_regression,OK,359,79,6,6,30,,0.66,0.514021164021164,0.3,1.0,0.3157894736842105,1.0,0.22214311142755427

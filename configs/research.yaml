@@ -1,0 +1,62 @@
+binance:
+  base_url: "https://fapi.binance.com"
+  timeout_seconds: 20
+  max_retries: 5
+  backoff_seconds: 1.0
+
+features:
+  ewma_days: 20
+  robust_window_minutes: 1440
+  high_window_minutes: 60
+  min_history_minutes: 1440
+
+labels:
+  # Three independent ways to confirm that an asset is already pumped.
+  # Each fixed threshold is also compared with the asset's own volatility.
+  pump_horizons:
+    15: 0.05
+    60: 0.10
+    240: 0.20
+  pump_volatility_multipliers:
+    15: 3.0
+    60: 4.0
+    240: 5.0
+  pump_volume_z: 1.5
+  pump_trade_z: 1.0
+  min_data_quality: 0.70
+
+  # Neighbouring trigger minutes are one market event, not independent samples.
+  pump_cluster_gap_minutes: 30
+  pump_context_minutes: 180
+  peak_lookahead_minutes: 240
+
+  # Event-level cleaning. Overlapping pump-to-peak intervals are one event.
+  event_merge_gap_minutes: 5
+  event_min_pump_return: 0.03
+  event_min_pump_volatility_multiplier: 2.0
+  fast_pump_max_minutes: 30
+  medium_pump_max_minutes: 120
+
+  forward_horizons: [5, 15, 30, 60]
+  severity_thresholds:
+    1: 0.03
+    2: 0.05
+    3: 0.08
+    4: 0.12
+  warning_offsets_minutes: [0, 5, 10, 15, 30, 60]
+
+training:
+  train_fraction: 0.60
+  validation_fraction: 0.20
+  random_state: 42
+  decision_threshold_grid: 101
+  minimum_events_per_split: 2
+  bootstrap_repeats: 2000
+  loso_validation_fraction: 0.20
+
+  # Strict prospective protocol: threshold calibration happens on earlier
+  # out-of-symbol events, then the final window is evaluated walk-forward.
+  prospective_test_fraction: 0.25
+  prospective_calibration_fraction: 0.25
+  prospective_purge_minutes: 60
+  prospective_min_train_events: 20

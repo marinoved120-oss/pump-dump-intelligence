@@ -1,0 +1,14 @@
+version: 1
+approval:
+  one_pending_change_at_a_time: true
+  serious_changes_via_telegram: true
+  protected_file_changes_are_critical: true
+execution:
+  worker_enabled_by_default: false
+  test_timeout_seconds: 1800
+  max_repository_context_chars: 140000
+security:
+  allow_docker_socket: false
+  allow_exchange_trading_keys: false
+  allow_secret_files_in_context: false
+  allow_shell_commands_from_model: false

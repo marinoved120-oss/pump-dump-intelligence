@@ -1,0 +1,150 @@
+version: 1
+policy:
+  one_pending_change_at_a_time: true
+  stop_after_failed_validation: true
+  serious_changes_require_approval: true
+
+tasks:
+  - id: V030-001
+    title: Live recorder schemas and sequence integrity
+    description: >-
+      Add immutable schemas for spot and futures depth updates, trades, open interest,
+      funding and liquidations. Add sequence-gap detection and resynchronization state
+      without starting a live collector yet.
+    acceptance_criteria:
+      - Spot and futures records have explicit market_type and exchange timestamps.
+      - Depth updates cannot be applied across a sequence gap.
+      - Missing or stale source data lowers data-quality status.
+      - Unit tests cover ordered updates, duplicates, gaps and resync.
+    allowed_paths:
+      - research/live
+      - tests/test_live_schemas.py
+      - tests/test_orderbook_sequence.py
+      - configs/live.yaml
+      - README.md
+      - CHANGELOG.md
+    risk_level: HIGH
+    requires_approval: true
+
+  - id: V030-002
+    title: Binance spot and futures WebSocket recorder
+    description: >-
+      Implement independent spot and USD-M futures collectors for depth and public trades,
+      with snapshot bootstrap, update-ID validation, reconnect backoff and durable event logs.
+    acceptance_criteria:
+      - Spot and futures books are reconstructed independently.
+      - Any missing update forces snapshot resynchronization.
+      - Raw events are retained before aggregation.
+      - Secrets are not required for public market streams.
+      - Replay tests reproduce the same final book.
+    allowed_paths:
+      - research/live
+      - tests/test_live_collectors.py
+      - tests/fixtures/orderbook
+      - configs/live.yaml
+      - docker-compose.yml
+      - README.md
+      - CHANGELOG.md
+    risk_level: HIGH
+    requires_approval: true
+
+  - id: V030-003
+    title: Whale wall persistence and liquidity-pull engine
+    description: >-
+      Detect relative large limit orders, persistence, execution, cancellation, refill,
+      repositioning and liquidity removal separately for spot and futures.
+    acceptance_criteria:
+      - Whale thresholds are relative to local depth and historical percentiles.
+      - A wall is not labelled real or fake from size alone.
+      - Every detected wall has a lifecycle and supporting observations.
+      - Spot and futures results remain separate and comparable.
+    allowed_paths:
+      - research/orderbook
+      - research/live
+      - tests/test_wall_tracker.py
+      - configs/orderbook.yaml
+      - README.md
+      - CHANGELOG.md
+    risk_level: HIGH
+    requires_approval: true
+
+  - id: V030-004
+    title: Spoofing iceberg and absorption evidence
+    description: >-
+      Add evidence scores for repeated cancellation before touch, order repositioning,
+      visible-size refill, executed-to-visible volume and price response. Findings must be
+      worded as evidence-compatible hypotheses, not accusations.
+    acceptance_criteria:
+      - Spoofing score uses lifetime, distance, cancellation, execution and repetition.
+      - Iceberg proxy uses refill and executed-to-visible volume.
+      - Absorption requires aggressive flow with weak price response.
+      - Reports include evidence, contradictions and confidence.
+    allowed_paths:
+      - research/orderbook
+      - research/evidence
+      - tests/test_manipulation_evidence.py
+      - configs/orderbook.yaml
+      - README.md
+      - CHANGELOG.md
+    risk_level: HIGH
+    requires_approval: true
+
+  - id: V030-005
+    title: Spot futures divergence and derivatives context
+    description: >-
+      Combine spot and futures flow, depth, basis, open interest, funding and liquidations
+      to distinguish organic spot demand, short squeeze, futures-led pump and late-long buildup.
+    acceptance_criteria:
+      - OI price combinations have explicit interpretations and counterexamples.
+      - Missing OI or liquidation data lowers confidence.
+      - Spot-led and futures-led movements are separately classified.
+      - Tests cover short squeeze and late-long buildup sequences.
+    allowed_paths:
+      - research/evidence
+      - research/derivatives
+      - tests/test_spot_futures_evidence.py
+      - configs/evidence.yaml
+      - README.md
+      - CHANGELOG.md
+    risk_level: HIGH
+    requires_approval: true
+
+  - id: V030-006
+    title: Causal evidence and contradiction engine
+    description: >-
+      Build market-phase hypotheses, pump-cause hypotheses, dump-mechanism hypotheses,
+      alternative scenarios, contradictions, missing-data statements and invalidation rules.
+    acceptance_criteria:
+      - No red alert can be produced from one evidence group.
+      - Correlated features do not count as independent confirmations.
+      - Every hypothesis lists supporting and contradicting evidence.
+      - Unsupported causal claims are rejected or weakened.
+    allowed_paths:
+      - research/evidence
+      - tests/test_causal_engine.py
+      - configs/evidence.yaml
+      - README.md
+      - CHANGELOG.md
+    risk_level: CRITICAL
+    requires_approval: true
+
+  - id: V030-007
+    title: Paper monitoring Telegram reports
+    description: >-
+      Deliver explainable live paper-monitoring reports and record outcomes at 5, 15, 30,
+      60 minutes and 4 hours. Do not add order placement or trading permissions.
+    acceptance_criteria:
+      - Telegram report follows the constitution output contract.
+      - Alerts have cooldown and invalidation updates.
+      - Outcomes are recorded without changing the production model automatically.
+      - No exchange trading endpoint exists in the implementation.
+    allowed_paths:
+      - research/monitor
+      - research/evidence
+      - tests/test_paper_monitor.py
+      - configs/monitor.yaml
+      - docker-compose.yml
+      - README.md
+      - CHANGELOG.md
+    risk_level: CRITICAL
+    requires_approval: true
