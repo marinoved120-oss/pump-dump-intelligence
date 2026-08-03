@@ -30,7 +30,6 @@ class RoadmapWorker:
             ChangeStatus.VALIDATING.value,
             ChangeStatus.PENDING_APPROVAL.value,
             ChangeStatus.APPROVED.value,
-            ChangeStatus.REJECTED.value,
             ChangeStatus.MERGED.value,
         }
         return {

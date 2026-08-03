@@ -78,6 +78,19 @@ def test_failed_task_is_retryable() -> None:
     assert "V030-001" not in worker._completed_task_ids()
 
 
+
+def test_rejected_task_is_retryable() -> None:
+    worker = RoadmapWorker(
+        pipeline=SimpleNamespace(),
+        db=_FakeDB(
+            [{"task_id": "V030-001", "status": ChangeStatus.REJECTED.value}]
+        ),
+        telegram=None,
+        roadmap_path=Path("ROADMAP.yaml"),
+    )
+    assert "V030-001" not in worker._completed_task_ids()
+
+
 def test_pending_task_is_not_duplicated() -> None:
     worker = RoadmapWorker(
         pipeline=SimpleNamespace(),
