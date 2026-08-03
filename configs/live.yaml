@@ -1,0 +1,17 @@
+# Live recorder configuration (schemas and integrity only; no collectors yet)
+
+sequence:
+  # Require a snapshot before accepting incrementals to establish baseline state
+  require_snapshot_first: true
+
+data_quality:
+  # If time since last exchange_ts exceeds warn threshold, degrade to <= 0.7
+  staleness_warn_ms: 5000
+  # If time since last exchange_ts exceeds critical threshold, degrade to <= 0.3
+  staleness_critical_ms: 15000
+
+# Future: per-exchange overrides can be added under exchanges:
+# exchanges:
+#   binance:
+#     sequence:
+#       require_snapshot_first: true
