@@ -1,6 +1,12 @@
 import pytest
+from pathlib import Path
 
-from orchestrator.patches import PatchError, extract_changed_paths, validate_patch_paths
+from orchestrator.patches import (
+    PatchError,
+    extract_changed_paths,
+    repair_missing_context_prefixes,
+    validate_patch_paths,
+)
 
 
 PATCH = """diff --git a/research/live/schema.py b/research/live/schema.py
@@ -65,3 +71,82 @@ def test_actual_changed_paths_are_limited_to_task_scope() -> None:
             ["research/live/schema.py", "tests/test_live_collectors.py"],
             ("research/live",),
         )
+
+def test_missing_context_prefixes_are_repaired_from_source(tmp_path: Path) -> None:
+    target = tmp_path / "research/live/__init__.py"
+    target.parent.mkdir(parents=True)
+    target.write_text(
+        '"""Live recorder utilities."""\n'
+        "\n"
+        "from .schemas import DepthUpdate\n",
+        encoding="utf-8",
+    )
+
+    malformed = (
+        "diff --git a/research/live/__init__.py b/research/live/__init__.py\n"
+        "index 1111111..2222222 100644\n"
+        "--- a/research/live/__init__.py\n"
+        "+++ b/research/live/__init__.py\n"
+        "@@ -1 +1 @@\n"
+        '"""Live recorder utilities."""\n'
+        "\n"
+        "from .schemas import DepthUpdate\n"
+        "+from .collector import BinanceCollector\n"
+    )
+
+    repaired = repair_missing_context_prefixes(malformed, tmp_path)
+
+    assert '@@ -1,3 +1,4 @@' in repaired
+    assert '\n """Live recorder utilities."""\n' in repaired
+    assert "\n \n from .schemas import DepthUpdate\n" in repaired
+
+
+def test_missing_context_prefix_repair_rejects_source_mismatch(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "research/live/__init__.py"
+    target.parent.mkdir(parents=True)
+    target.write_text("original line\n", encoding="utf-8")
+
+    malformed = (
+        "diff --git a/research/live/__init__.py b/research/live/__init__.py\n"
+        "index 1111111..2222222 100644\n"
+        "--- a/research/live/__init__.py\n"
+        "+++ b/research/live/__init__.py\n"
+        "@@ -1 +1 @@\n"
+        "different line\n"
+        "+added line\n"
+    )
+
+    with pytest.raises(PatchError, match="does not exactly match source"):
+        repair_missing_context_prefixes(malformed, tmp_path)
+
+def test_bare_blank_before_next_file_boundary_is_removed(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "research/live/__init__.py"
+    target.parent.mkdir(parents=True)
+    target.write_text("existing line\n", encoding="utf-8")
+
+    malformed = (
+        "diff --git a/research/live/__init__.py b/research/live/__init__.py\n"
+        "index 1111111..2222222 100644\n"
+        "--- a/research/live/__init__.py\n"
+        "+++ b/research/live/__init__.py\n"
+        "@@ -1 +1,2 @@\n"
+        "existing line\n"
+        "+added line\n"
+        "\n"
+        "diff --git a/research/live/new.py b/research/live/new.py\n"
+        "new file mode 100644\n"
+        "--- /dev/null\n"
+        "+++ b/research/live/new.py\n"
+        "@@ -0,0 +1 @@\n"
+        "+VALUE = 1\n"
+    )
+
+    repaired = repair_missing_context_prefixes(malformed, tmp_path)
+
+    assert "+added line\ndiff --git a/research/live/new.py" in repaired
+    assert "+added line\n\ndiff --git a/research/live/new.py" not in repaired
+

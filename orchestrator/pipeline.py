@@ -11,6 +11,7 @@ from orchestrator.gitops import GitError, GitRepo
 from orchestrator.models import ChangeStatus, TaskSpec
 from orchestrator.patches import (
     PatchError,
+    repair_missing_context_prefixes,
     validate_changed_paths,
     validate_patch_paths,
     write_patch,
@@ -67,7 +68,14 @@ class DevelopmentPipeline:
             patch_path: Path | None = None
             for attempt in range(3):
                 try:
-                    candidate_paths = validate_patch_paths(generated.diff, task.allowed_paths)
+                    candidate_diff = repair_missing_context_prefixes(
+                        generated.diff,
+                        self.config.project_root,
+                    )
+                    candidate_paths = validate_patch_paths(
+                        candidate_diff,
+                        task.allowed_paths,
+                    )
                     self.constitution.validate_changed_paths(
                         candidate_paths,
                         critical_approved=False,
@@ -75,7 +83,7 @@ class DevelopmentPipeline:
                     patch_path = write_patch(
                         self.config.state_dir,
                         change_id,
-                        generated.diff,
+                        candidate_diff,
                     )
                     self.repo.apply_patch(patch_path)
                     break

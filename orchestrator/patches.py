@@ -114,6 +114,117 @@ def _recount_hunks(lines: list[str]) -> list[str]:
     return recounted
 
 
+
+def repair_missing_context_prefixes(diff_text: str, project_root: Path) -> str:
+    """Restore omitted context prefixes only when source text matches exactly."""
+    normalized = normalize_unified_diff(diff_text)
+    lines = normalized.rstrip("\n").split("\n")
+    # A bare empty line immediately before the next file header is not
+    # valid hunk content. Legitimate empty context/addition lines have
+    # a leading space or plus sign, respectively.
+    lines = [
+        line
+        for index, line in enumerate(lines)
+        if not (
+            line == ""
+            and index + 1 < len(lines)
+            and lines[index + 1].startswith("diff --git ")
+        )
+    ]
+    repaired = list(lines)
+
+    root = project_root.resolve()
+    source_lines: list[str] | None = None
+    source_index: int | None = None
+    in_hunk = False
+
+    for index, line in enumerate(lines):
+        if line.startswith("diff --git "):
+            source_lines = None
+            source_index = None
+            in_hunk = False
+            continue
+
+        if line.startswith("--- "):
+            old_path = line[4:].split("\t", 1)[0]
+
+            if old_path == "/dev/null":
+                source_lines = None
+                source_index = None
+                continue
+
+            if old_path.startswith("a/"):
+                old_path = old_path[2:]
+
+            candidate = (root / old_path).resolve()
+            try:
+                candidate.relative_to(root)
+            except ValueError as exc:
+                raise PatchError(
+                    f"Patch source path escapes project root: {old_path}"
+                ) from exc
+
+            if not candidate.is_file():
+                raise PatchError(f"Patch source file does not exist: {old_path}")
+
+            source_lines = candidate.read_text(encoding="utf-8").splitlines()
+            source_index = None
+            continue
+
+        match = _HUNK_HEADER_FULL.match(line)
+        if match:
+            source_index = int(match.group(1)) - 1
+            in_hunk = True
+            continue
+
+        if not in_hunk:
+            continue
+
+        if line.startswith("\\ No newline at end of file"):
+            continue
+
+        if line.startswith("+"):
+            continue
+
+        if line.startswith("-"):
+            if source_index is None:
+                raise PatchError(
+                    f"Deletion encountered without source position at patch line {index + 1}"
+                )
+            source_index += 1
+            continue
+
+        if line.startswith(" "):
+            if source_index is None:
+                raise PatchError(
+                    f"Context encountered without source position at patch line {index + 1}"
+                )
+            source_index += 1
+            continue
+
+        if (
+            source_lines is None
+            or source_index is None
+            or source_index < 0
+            or source_index >= len(source_lines)
+        ):
+            raise PatchError(
+                f"Cannot safely restore context prefix at patch line {index + 1}"
+            )
+
+        if line != source_lines[source_index]:
+            raise PatchError(
+                "Unprefixed patch line does not exactly match source "
+                f"at patch line {index + 1}"
+            )
+
+        repaired[index] = " " + line
+        source_index += 1
+
+    repaired = _recount_hunks(repaired)
+    return "\n".join(repaired).rstrip() + "\n"
+
+
 def normalize_unified_diff(diff_text: str) -> str:
     """Remove common model wrappers and repair deterministic patch formatting defects."""
     value = str(diff_text or "").replace("\r\n", "\n").replace("\r", "\n").lstrip("\ufeff")
