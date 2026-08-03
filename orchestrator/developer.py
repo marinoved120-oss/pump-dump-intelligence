@@ -94,7 +94,7 @@ def _decode_change(data: dict, task: TaskSpec) -> GeneratedChange:
 
 
 class OpenAIDeveloper:
-    def __init__(self, api_key: str, model: str, timeout_seconds: int = 180):
+    def __init__(self, api_key: str, model: str, timeout_seconds: int = 600):
         self.api_key = api_key
         self.model = model
         self.timeout_seconds = timeout_seconds
