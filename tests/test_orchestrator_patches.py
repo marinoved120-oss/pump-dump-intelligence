@@ -23,3 +23,45 @@ def test_patch_paths_are_limited_to_task_scope() -> None:
 def test_patch_outside_scope_is_rejected() -> None:
     with pytest.raises(PatchError):
         validate_patch_paths(PATCH, ("research/evidence",))
+
+
+def test_hidden_file_boundary_is_recovered_before_scope_validation() -> None:
+    malformed = """diff --git a/research/live/schema.py b/research/live/schema.py
+new file mode 100644
+--- /dev/null
++++ b/research/live/schema.py
+@@ -0,0 +1,2 @@
++VALUE = 1
++diff --git a/tests/test_live_collectors.py b/tests/test_live_collectors.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_live_collectors.py
+@@ -0,0 +1,9 @@
++def test_value():
++    assert True
+"""
+    with pytest.raises(PatchError, match="outside task scope"):
+        validate_patch_paths(malformed, ("research/live",))
+
+
+def test_incorrect_hunk_counts_are_recounted() -> None:
+    malformed = """diff --git a/research/live/schema.py b/research/live/schema.py
+new file mode 100644
+--- /dev/null
++++ b/research/live/schema.py
+@@ -0,0 +1,99 @@
++VALUE = 1
+"""
+    assert validate_patch_paths(malformed, ("research/live",)) == [
+        "research/live/schema.py"
+    ]
+
+
+def test_actual_changed_paths_are_limited_to_task_scope() -> None:
+    from orchestrator.patches import validate_changed_paths
+
+    with pytest.raises(PatchError, match="outside task scope"):
+        validate_changed_paths(
+            ["research/live/schema.py", "tests/test_live_collectors.py"],
+            ("research/live",),
+        )

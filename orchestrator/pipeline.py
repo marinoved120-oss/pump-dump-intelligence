@@ -9,7 +9,12 @@ from orchestrator.db import OrchestratorDB
 from orchestrator.developer import OpenAIDeveloper
 from orchestrator.gitops import GitError, GitRepo
 from orchestrator.models import ChangeStatus, TaskSpec
-from orchestrator.patches import PatchError, validate_patch_paths, write_patch
+from orchestrator.patches import (
+    PatchError,
+    validate_changed_paths,
+    validate_patch_paths,
+    write_patch,
+)
 from orchestrator.validation import run_validation
 
 
@@ -90,9 +95,10 @@ class DevelopmentPipeline:
             else:
                 raise PipelineError("No patch could be applied")
 
-            actual_paths = self.repo.changed_paths()
-            if not actual_paths:
-                raise PipelineError("Applied patch produced no repository changes")
+            actual_paths = validate_changed_paths(
+                self.repo.changed_paths(),
+                task.allowed_paths,
+            )
             self.constitution.validate_changed_paths(
                 actual_paths,
                 critical_approved=False,
