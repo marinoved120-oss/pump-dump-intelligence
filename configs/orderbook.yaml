@@ -21,3 +21,31 @@ wall_tracker:
 
   # Spot and futures are always routed to independent trackers.
   separate_market_types: true
+
+manipulation_evidence:
+  # Scores describe evidence compatibility, never intent or wrongdoing.
+  spoofing:
+    max_lifetime_ms: 5000
+    distance_reference_bps: 25.0
+    min_cancellation_ratio: 0.60
+    execution_contradiction_ratio: 0.25
+    repetition_reference: 3
+    min_repetitions: 2
+    min_score: 0.60
+
+  iceberg:
+    min_refill_count: 2
+    min_executed_to_visible: 1.50
+    refill_reference_ratio: 1.00
+    min_score: 0.60
+
+  absorption:
+    min_aggressive_volume: 10.0
+    min_flow_to_depth_ratio: 1.00
+    max_price_response_bps: 10.0
+
+  reporting:
+    require_evidence: true
+    include_contradictions: true
+    include_confidence: true
+    prohibit_intent_claims: true
