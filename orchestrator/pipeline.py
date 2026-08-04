@@ -44,6 +44,20 @@ class DevelopmentPipeline:
         if current:
             self.db.set_setting("base_branch", current)
 
+    def _latest_rejection_feedback(self, task_id: str) -> str | None:
+        """Return the newest non-empty rejection reason for this task."""
+        for row in self.db.list_changes(limit=10_000):
+            if str(row.get("task_id") or "") != task_id:
+                continue
+            if str(row.get("status") or "") != ChangeStatus.REJECTED.value:
+                continue
+
+            reason = str(row.get("rejection_reason") or "").strip()
+            if reason:
+                return reason
+
+        return None
+
     def create_proposal(self, task: TaskSpec) -> str:
         if not self.config.openai_api_key:
             raise PipelineError("OPENAI_API_KEY is required for autonomous code generation")
@@ -63,7 +77,15 @@ class DevelopmentPipeline:
         try:
             constitution_text = self.constitution.path.read_text(encoding="utf-8")
             developer = OpenAIDeveloper(self.config.openai_api_key, self.config.openai_model)
-            generated = developer.generate(self.config.project_root, task, constitution_text)
+            reviewer_feedback = self._latest_rejection_feedback(
+                task.task_id
+            )
+            generated = developer.generate(
+                self.config.project_root,
+                task,
+                constitution_text,
+                reviewer_feedback=reviewer_feedback,
+            )
 
             patch_path: Path | None = None
             for attempt in range(3):
