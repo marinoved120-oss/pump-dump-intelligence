@@ -1,0 +1,33 @@
+spot_futures:
+  price:
+    min_move_bps: 30.0
+    leadership_margin_bps: 15.0
+
+  flow:
+    min_imbalance: 0.15
+
+  open_interest:
+    rise_pct: 0.05
+    fall_pct: 0.05
+
+  basis:
+    expansion_bps: 5.0
+
+  funding:
+    high_rate: 0.0005
+
+  liquidations:
+    min_volume: 10.0
+    short_to_long_ratio: 3.0
+
+  sequence:
+    prior_move_bps: 50.0
+
+  reporting:
+    min_score: 0.60
+    missing_oi_penalty: 0.15
+    missing_liquidation_penalty: 0.15
+    missing_funding_penalty: 0.05
+    include_interpretation: true
+    include_counterexamples: true
+    keep_spot_futures_leadership_separate: true
