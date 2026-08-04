@@ -165,3 +165,39 @@ def test_request_uses_strict_structured_output(monkeypatch) -> None:
     ]
     assert result["summary"] == "summary"
 
+
+def test_base_prompt_requires_concrete_network_adapter_and_lifecycle_tests(
+    tmp_path,
+) -> None:
+    task = SimpleNamespace(
+        task_id="V030-002",
+        title="Binance WebSocket recorder",
+        description=(
+            "Implement independent Spot and Futures collectors with "
+            "REST bootstrap, reconnect and resynchronization."
+        ),
+        acceptance_criteria=(
+            "Spot and futures collectors operate independently.",
+            "Missing updates force snapshot resynchronization.",
+        ),
+        allowed_paths=("research/live", "tests/test_live_collectors.py"),
+    )
+
+    prompt = OpenAIDeveloper._base_prompt(
+        tmp_path,
+        task,
+        "Test constitution",
+        reviewer_feedback=(
+            "The previous implementation supplied only a Transport Protocol "
+            "and no concrete WebSocket or HTTP adapter."
+        ),
+    )
+
+    assert "Dependency injection does not replace a production implementation" in prompt
+    assert "concrete runtime adapter" in prompt
+    assert "Protocol methods containing only ellipsis" in prompt
+    assert "tests must run both collector variants" in prompt
+    assert "gap-triggered snapshot resynchronization" in prompt
+    assert "disconnect-triggered reconnect" in prompt
+    assert "Passing only pre-existing tests is not evidence" in prompt
+

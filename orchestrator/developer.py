@@ -203,6 +203,15 @@ IMPLEMENTATION COMPLETENESS CONTRACT:
   resynchronization, or durable event logging, include working lifecycle code for those features.
 - Network lifecycle code must be dependency-injectable and covered with mocked transport tests;
   tests must exercise connect, bootstrap, normal processing, failure, reconnect, and recovery.
+- Dependency injection does not replace a production implementation. If you introduce a Protocol,
+  ABC, interface, or injectable transport, also provide a concrete runtime adapter using the
+  project's available WebSocket and HTTP libraries, and wire it into a usable construction path.
+- Protocol methods containing only ellipsis, pass, NotImplementedError, or abstract declarations
+  do not satisfy a collector, transport, persistence, or service requirement.
+- For separate Spot and Futures collectors, tests must run both collector variants through their
+  lifecycle. Include gap-triggered snapshot resynchronization and disconnect-triggered reconnect.
+- When task scope permits test files, a runtime/network change must add or update task-specific
+  behavioral tests. Passing only pre-existing tests is not evidence that the task is complete.
 - Do not return TODOs, placeholder exceptions, pass-only bodies, empty interfaces, or mock-only
   production implementations.
 - Tests must map to every acceptance criterion and verify observable behavior and recovery paths,
