@@ -1,0 +1,23 @@
+wall_tracker:
+  # Candidate size must exceed both the local-depth threshold and,
+  # once enough history exists, the historical size percentile.
+  local_depth_levels: 10
+  relative_depth_fraction: 0.25
+  historical_percentile: 0.95
+  history_size: 2000
+  min_history_observations: 30
+  min_absolute_size: 0.0
+
+  # Persistence requires both repeated observations and elapsed time.
+  min_persistence_observations: 3
+  min_persistence_ms: 1000
+
+  # Lifecycle evidence thresholds.
+  liquidity_pull_fraction: 0.20
+  refill_fraction: 0.20
+  execution_match_bps: 5.0
+  reposition_max_bps: 20.0
+  reposition_size_tolerance: 0.35
+
+  # Spot and futures are always routed to independent trackers.
+  separate_market_types: true
