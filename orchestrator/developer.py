@@ -93,6 +93,41 @@ def _decode_change(data: dict, task: TaskSpec) -> GeneratedChange:
     )
 
 
+_GENERATED_CHANGE_FORMAT = {
+    "type": "json_schema",
+    "name": "generated_change",
+    "description": "A complete repository change represented as a unified diff.",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "summary": {
+                "type": "string",
+            },
+            "rationale": {
+                "type": "string",
+            },
+            "risks": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                },
+            },
+            "unified_diff": {
+                "type": "string",
+            },
+        },
+        "required": [
+            "summary",
+            "rationale",
+            "risks",
+            "unified_diff",
+        ],
+        "additionalProperties": False,
+    },
+}
+
+
 class OpenAIDeveloper:
     def __init__(self, api_key: str, model: str, timeout_seconds: int = 600):
         self.api_key = api_key
@@ -102,6 +137,9 @@ class OpenAIDeveloper:
     def _request(self, prompt: str) -> dict:
         request = {
             "model": self.model,
+            "text": {
+                "format": _GENERATED_CHANGE_FORMAT,
+            },
             "input": [
                 {
                     "role": "developer",

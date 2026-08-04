@@ -105,3 +105,63 @@ def test_latest_rejection_feedback_returns_none_without_reason() -> None:
 
     assert pipeline._latest_rejection_feedback("V030-002") is None
 
+
+def test_request_uses_strict_structured_output(monkeypatch) -> None:
+    captured = {}
+
+    class FakeResponse:
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {
+                "output_text": (
+                    '{"summary":"summary",'
+                    '"rationale":"rationale",'
+                    '"risks":[],'
+                    '"unified_diff":"diff --git a/a.py b/a.py\\n"}'
+                )
+            }
+
+    class FakeClient:
+        def __init__(self, timeout):
+            captured["timeout"] = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def post(self, url, *, headers, json):
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["request"] = json
+            return FakeResponse()
+
+    monkeypatch.setattr(
+        "orchestrator.developer.httpx.Client",
+        FakeClient,
+    )
+
+    developer = OpenAIDeveloper(
+        api_key="test-key",
+        model="test-model",
+    )
+    result = developer._request("test prompt")
+
+    request = captured["request"]
+    output_format = request["text"]["format"]
+    schema = output_format["schema"]
+
+    assert output_format["type"] == "json_schema"
+    assert output_format["strict"] is True
+    assert schema["additionalProperties"] is False
+    assert schema["required"] == [
+        "summary",
+        "rationale",
+        "risks",
+        "unified_diff",
+    ]
+    assert result["summary"] == "summary"
+
