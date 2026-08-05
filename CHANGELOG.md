@@ -8,6 +8,10 @@
 - Exit non-zero when Binance credential variables or unsafe monitor settings are detected.
 - Keep credential values redacted and perform no Binance or Telegram network requests.
 - Connect validated configuration to the existing paper monitor and append-only outcome tracker.
+- Add the deterministic local paper-replay command for strict alert, invalidation and price JSONL streams.
+- Run fail-closed preflight before reading replay inputs and emit deterministic redacted JSON reports.
+- Reuse the existing PaperMonitor for cooldown, invalidation and append-only outcome tracking.
+- Prevent duplicate stored outcomes after restart and perform no Binance or Telegram requests.
 
 ## 0.3.0.2 - Paper monitoring packaging release
 

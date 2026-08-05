@@ -148,6 +148,16 @@ The command emits one deterministic JSON line. A safe configuration exits with c
 
 Preflight does not contact Binance or Telegram, does not create the outcome file, and never prints credential values. Paper outcomes remain local in the append-only artifacts/paper-outcomes.jsonl file.
 
+## Deterministic local paper replay
+
+Replay strict alert, invalidation, and price events from local JSONL files:
+
+    docker compose run --rm research paper-replay --project-root /app
+
+The command runs the paper-monitor safety preflight before reading runtime events. Inputs must be normalized JSONL paths under artifacts. Events are processed deterministically by timestamp through the existing PaperMonitor cooldown, invalidation, and outcome logic.
+
+Formatted messages and outcomes remain in append-only local JSONL files. Replay performs no Binance or Telegram requests, exits with code 2 on unsafe or malformed input, and does not duplicate already stored outcomes after restart.
+
 ## Research command retained
 
 ```powershell
