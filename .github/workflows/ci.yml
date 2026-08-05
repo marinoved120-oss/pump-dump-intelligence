@@ -23,6 +23,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Provide legacy workspace path
+        run: sudo ln -s "$GITHUB_WORKSPACE" /workspace
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:

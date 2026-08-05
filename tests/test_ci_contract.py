@@ -13,6 +13,7 @@ def test_ci_workflow_has_required_triggers_and_permissions() -> None:
     assert "\n  pull_request:\n" in workflow
     assert "\npermissions:\n  contents: read\n" in workflow
     assert "persist-credentials: false" in workflow
+    assert 'sudo ln -s "$GITHUB_WORKSPACE" /workspace' in workflow
 
 
 def test_ci_workflow_runs_required_validation() -> None:
