@@ -148,3 +148,30 @@ tasks:
       - CHANGELOG.md
     risk_level: CRITICAL
     requires_approval: true
+
+  - id: V031-001
+    title: GitHub Actions CI and release integrity
+    description: >-
+      Add a read-only GitHub Actions workflow for pushes and pull requests.
+      Run the complete test suite, compile the Python packages, build and inspect
+      the wheel, verify packaged configuration fallback and reject forbidden
+      trading endpoints without requiring exchange credentials.
+    acceptance_criteria:
+      - CI runs for pushes and pull requests.
+      - The complete pytest suite passes in a clean environment.
+      - Compileall succeeds for research and orchestrator.
+      - The Python wheel builds successfully.
+      - The installed wheel can load its packaged default research configuration outside the repository.
+      - CI rejects order placement, order cancellation, withdrawal and private trading endpoints in research.
+      - No Binance API keys, exchange secrets or trading permissions are required.
+      - Existing tests and safety requirements are not weakened.
+    allowed_paths:
+      - .github/workflows
+      - scripts/ci
+      - tests/test_ci_contract.py
+      - tests/test_research_config_packaging.py
+      - pyproject.toml
+      - README.md
+      - CHANGELOG.md
+    risk_level: HIGH
+    requires_approval: true
