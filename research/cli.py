@@ -39,6 +39,7 @@ from research.models.evaluation import (
 )
 from research.models.prospective import run_purged_walk_forward_loso
 from research.monitor.preflight import run_monitor_preflight
+from research.monitor.runtime import run_paper_replay
 from research.reports.html import render_loso_report, render_prospective_report, render_report
 
 app = typer.Typer(no_args_is_help=True, help="Pump/Dump Research v0.3.0.2 Controlled Intelligence Development")
@@ -815,7 +816,7 @@ def loso(
             fold_rows.append(
                 {
                     "holdout_symbol": holdout_symbol,
-                    "model": "—",
+                    "model": "вЂ”",
                     "status": f"SKIPPED: {exc}",
                     "test_rows": len(holdout),
                     "test_events": int(holdout[group_column].nunique()),
@@ -961,6 +962,43 @@ def prospective_command(
         f"macro positive F1={float((result.summary.get('macro_positive_symbols') or {}).get('event_f1') or 0):.3f}"
     )
     console.print(f"[bold green]Prospective report:[/bold green] {report}")
+
+
+@app.command(name="paper-replay")
+def paper_replay_command(
+    alerts_path: Annotated[
+        str,
+        typer.Option("--alerts"),
+    ] = "artifacts/paper-alert-events.jsonl",
+    prices_path: Annotated[
+        str,
+        typer.Option("--prices"),
+    ] = "artifacts/paper-price-events.jsonl",
+    messages_path: Annotated[
+        str,
+        typer.Option("--messages"),
+    ] = "artifacts/paper-messages.jsonl",
+    config_path: Annotated[
+        str,
+        typer.Option("--config"),
+    ] = "configs/monitor.yaml",
+    project_root: Annotated[
+        str,
+        typer.Option("--project-root"),
+    ] = ".",
+) -> None:
+    """Replay strict local paper-monitor events without network access."""
+    report = run_paper_replay(
+        alerts_path,
+        prices_path,
+        messages_path,
+        config_path=config_path,
+        project_root=project_root,
+    )
+    typer.echo(report.to_json())
+
+    if report.status != "passed":
+        raise typer.Exit(code=2)
 
 
 @app.command(name="paper-preflight")
