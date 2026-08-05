@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0.2 - Paper monitoring packaging release
+
+- Package the completed V030 public-data and paper-monitoring pipeline.
+- Include independent Binance spot and futures collectors and order books.
+- Track whale-wall lifecycle evidence without assigning real/fake labels.
+- Add manipulation, spot/futures divergence and causal contradiction evidence.
+- Add Telegram HTML paper reports, cooldowns, invalidations and outcome tracking.
+- Require at least three independent evidence groups for red alerts.
+- Include the default research configuration in the Python wheel.
+- Fall back to the packaged default only when the normal repository default is absent.
+- Preserve strict handling for explicitly supplied configuration paths.
+- Keep the architecture read-only: no order placement, cancellation or withdrawal endpoints.
+- Validation total: 113 automated tests passed; 2525 pre-existing warnings remain.
+
 ## 0.3.0.1 — Patch and recovery hardening
 
 - Normalize model-generated unified diffs and remove Markdown wrappers before validation.

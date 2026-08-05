@@ -1,4 +1,4 @@
-# Pump/Dump Intelligence Engine v0.3.0.1
+# Pump/Dump Intelligence Engine v0.3.0.2
 
 This release keeps the v0.2.4.1 prospective research pipeline and adds a controlled development orchestrator. The orchestrator can prepare one roadmap change at a time in an isolated Git branch, run the complete test suite, and request approval in Telegram before merging.
 
@@ -21,7 +21,7 @@ It does **not** place trades, hold exchange trading keys, mount the Docker socke
 - no Docker socket by default;
 - no secrets in repository context or Telegram reports.
 
-## Install v0.3.0.1
+## Install v0.3.0.2
 
 Copy this release over the existing project, then rebuild:
 
@@ -40,7 +40,7 @@ docker compose run --rm --entrypoint python research -m pytest
 Expected version:
 
 ```text
-Pump/Dump Research v0.3.0.1
+Pump/Dump Research v0.3.0.2
 ```
 
 
