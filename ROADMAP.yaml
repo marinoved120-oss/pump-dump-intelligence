@@ -204,3 +204,34 @@ tasks:
       - CHANGELOG.md
     risk_level: CRITICAL
     requires_approval: true
+
+  - id: V031-003
+    title: Deterministic local paper-monitor replay runtime
+    description: >-
+      Add a local deterministic replay command that runs the existing
+      paper monitor against strictly validated alert and price events from
+      local JSONL files. Require the existing fail-closed preflight, write
+      messages and outcomes only to local append-only storage and perform
+      no Binance or Telegram network requests.
+    acceptance_criteria:
+      - The replay command runs the existing paper-monitor preflight before reading runtime events.
+      - Alert and price events use immutable strict typed schemas with unknown fields forbidden.
+      - Events are read only from local JSONL files and processed in deterministic timestamp order.
+      - The existing PaperMonitor provides cooldown, invalidation and outcome behavior without parallel implementations.
+      - A local append-only JSONL sink records formatted monitor messages without contacting Telegram.
+      - Restarting replay does not duplicate outcomes already present in the configured outcome store.
+      - Missing files, malformed JSONL, invalid fields and unsafe values fail closed with non-zero exit status.
+      - The command emits a deterministic redacted machine-readable run report.
+      - Tests cover initial alerts, cooldown, invalidation, due outcomes, restart recovery, malformed input and zero-network behavior.
+      - No order placement, order cancellation, outbound asset transfer, credential or automatic-trading capability is added.
+    allowed_paths:
+      - research/monitor
+      - research/cli.py
+      - tests/test_paper_monitor_runtime.py
+      - tests/test_paper_monitor.py
+      - configs/monitor.yaml
+      - README.md
+      - CHANGELOG.md
+      - ROADMAP.yaml
+    risk_level: HIGH
+    requires_approval: true
