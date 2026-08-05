@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased - V031 operational hardening
+
+- Parse the complete paper-monitor YAML into immutable strict typed configuration.
+- Reject missing fields, unknown fields, malformed YAML, unsafe values and unsafe JSONL paths.
+- Add the read-only paper-preflight command with deterministic machine-readable output.
+- Exit non-zero when Binance credential variables or unsafe monitor settings are detected.
+- Keep credential values redacted and perform no Binance or Telegram network requests.
+- Connect validated configuration to the existing paper monitor and append-only outcome tracker.
+
 ## 0.3.0.2 - Paper monitoring packaging release
 
 - Package the completed V030 public-data and paper-monitoring pipeline.

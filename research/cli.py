@@ -33,9 +33,12 @@ from research.models.baselines import (
 from research.models.evaluation import (
     evaluate_event_predictions,
     evaluate_prediction_frame,
+)
+from research.models.evaluation import (
     feature_availability as calculate_feature_availability,
 )
 from research.models.prospective import run_purged_walk_forward_loso
+from research.monitor.preflight import run_monitor_preflight
 from research.reports.html import render_loso_report, render_prospective_report, render_report
 
 app = typer.Typer(no_args_is_help=True, help="Pump/Dump Research v0.3.0.2 Controlled Intelligence Development")
@@ -958,6 +961,28 @@ def prospective_command(
         f"macro positive F1={float((result.summary.get('macro_positive_symbols') or {}).get('event_f1') or 0):.3f}"
     )
     console.print(f"[bold green]Prospective report:[/bold green] {report}")
+
+
+@app.command(name="paper-preflight")
+def paper_preflight_command(
+    config_path: Annotated[
+        str,
+        typer.Option("--config"),
+    ] = "configs/monitor.yaml",
+    project_root: Annotated[
+        str,
+        typer.Option("--project-root"),
+    ] = ".",
+) -> None:
+    """Validate paper-monitor safety without network side effects."""
+    report = run_monitor_preflight(
+        config_path,
+        project_root=project_root,
+    )
+    typer.echo(report.to_json())
+
+    if report.status != "passed":
+        raise typer.Exit(code=2)
 
 
 @app.command(name="pytest")
