@@ -175,3 +175,32 @@ tasks:
       - CHANGELOG.md
     risk_level: HIGH
     requires_approval: true
+
+  - id: V031-002
+    title: Strict paper monitor configuration and preflight
+    description: >-
+      Turn configs/monitor.yaml into a typed fail-closed runtime contract
+      and add a read-only preflight command. Validate paper-only mode,
+      local append-only outcome storage and every trading, credential,
+      withdrawal and production-model safety flag before a live paper
+      monitor process can start. Preflight must not contact exchanges
+      or Telegram.
+    acceptance_criteria:
+      - The complete monitor YAML is parsed into immutable typed configuration used by paper-monitor components.
+      - Missing or malformed configuration, missing required fields, unknown fields and unsafe values fail closed with clear errors.
+      - Preflight rejects exchange credentials, order placement, order cancellation, withdrawals, automatic trading and production-model updates.
+      - Preflight validates the configured local JSONL outcome path without sending Telegram messages or making exchange requests.
+      - Preflight emits a deterministic redacted machine-readable report and exits non-zero on any failed check.
+      - Safe configuration requires no Binance API keys, exchange secrets or trading permissions.
+      - Tests cover safe configuration, malformed configuration, every unsafe safety flag, redaction and zero-network side effects.
+      - Existing paper-monitor behavior, CI and safety tests remain passing and are not weakened.
+    allowed_paths:
+      - research/monitor
+      - research/cli.py
+      - tests/test_paper_monitor_config.py
+      - tests/test_paper_monitor.py
+      - configs/monitor.yaml
+      - README.md
+      - CHANGELOG.md
+    risk_level: CRITICAL
+    requires_approval: true
