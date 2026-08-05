@@ -1,5 +1,14 @@
 """Evidence-compatible market-behaviour hypotheses."""
 
+from .causal import (
+    CausalAnalysisBundle,
+    CausalAssessment,
+    CausalEngineConfig,
+    CausalEvidenceEngine,
+    EvidenceItem,
+    HypothesisSpec,
+    InvalidationRule,
+)
 from .manipulation import (
     AbsorptionWindow,
     EvidenceConfig,
@@ -14,8 +23,15 @@ from .spot_futures import (
 
 __all__ = [
     "AbsorptionWindow",
+    "CausalAnalysisBundle",
+    "CausalAssessment",
+    "CausalEngineConfig",
+    "CausalEvidenceEngine",
     "EvidenceConfig",
+    "EvidenceItem",
     "EvidenceReport",
+    "HypothesisSpec",
+    "InvalidationRule",
     "ManipulationEvidenceAnalyzer",
     "SpotFuturesEvidenceAnalyzer",
     "SpotFuturesEvidenceConfig",

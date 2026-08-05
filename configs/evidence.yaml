@@ -31,3 +31,33 @@ spot_futures:
     include_interpretation: true
     include_counterexamples: true
     keep_spot_futures_leadership_separate: true
+
+causal_engine:
+  scoring:
+    support_threshold: 0.60
+    reject_below_score: 0.25
+    orange_score: 0.65
+    red_score: 0.80
+    contradiction_penalty: 0.50
+
+  independence:
+    support_reference_confirmations: 3
+    confidence_group_reference: 3
+    min_groups_for_red: 2
+    min_confirmations_for_red: 2
+    deduplicate_by_correlation_key: true
+
+  data_quality:
+    missing_data_penalty: 0.12
+
+  invalidation:
+    trigger_strength: 0.70
+
+  reporting:
+    include_supporting_evidence: true
+    include_contradicting_evidence: true
+    include_missing_data: true
+    include_invalidation_rules: true
+    include_alternative_scenarios: true
+    weaken_unsupported_causal_claims: true
+    prohibit_single_group_red_alerts: true
