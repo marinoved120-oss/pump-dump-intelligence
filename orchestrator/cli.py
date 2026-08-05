@@ -17,7 +17,7 @@ from orchestrator.roadmap import load_roadmap
 from orchestrator.telegram import TelegramGateway, discover_recent_users
 from orchestrator.worker import RoadmapWorker
 
-app = typer.Typer(no_args_is_help=True, help="Pump/Dump Development Orchestrator v0.3.0.1")
+app = typer.Typer(no_args_is_help=True, help="Pump/Dump Development Orchestrator v0.3.0.2")
 console = Console()
 
 

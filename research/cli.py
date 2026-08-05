@@ -38,7 +38,7 @@ from research.models.evaluation import (
 from research.models.prospective import run_purged_walk_forward_loso
 from research.reports.html import render_loso_report, render_prospective_report, render_report
 
-app = typer.Typer(no_args_is_help=True, help="Pump/Dump Research v0.3.0.1 Controlled Intelligence Development")
+app = typer.Typer(no_args_is_help=True, help="Pump/Dump Research v0.3.0.2 Controlled Intelligence Development")
 console = Console()
 
 
@@ -315,7 +315,7 @@ def _build_one(symbol_value: str, config: ResearchConfig) -> tuple[str, int, int
 @app.command()
 def version() -> None:
     """Print program version."""
-    console.print("Pump/Dump Research [bold]v0.3.0.1[/bold]")
+    console.print("Pump/Dump Research [bold]v0.3.0.2[/bold]")
 
 
 @app.command()
@@ -759,7 +759,7 @@ def train(
         target,
         effective_features,
         "artifacts/report.html",
-        version="0.3.0.1",
+        version="0.3.0.2",
         provenance=provenance,
         split_summary=split_rows,
         feature_availability=availability,
@@ -884,7 +884,7 @@ def loso(
         pooled,
         "artifacts/loso_report.html",
         target,
-        version="0.3.0.1",
+        version="0.3.0.2",
     )
     console.print(f"[bold green]LOSO report:[/bold green] {report}")
 
@@ -947,7 +947,7 @@ def prospective_command(
         "artifacts/prospective_report.html",
         target,
         result.model_name,
-        version="0.3.0.1",
+        version="0.3.0.2",
         calibration_start=result.calibration_start,
         evaluation_start=result.evaluation_start,
     )
@@ -1046,7 +1046,7 @@ def demo(
         target,
         effective,
         "artifacts/report.html",
-        version="0.3.0.1",
+        version="0.3.0.2",
         provenance=provenance,
         split_summary=split_rows,
         feature_availability=availability,

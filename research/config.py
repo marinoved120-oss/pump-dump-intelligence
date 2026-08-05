@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -74,12 +75,27 @@ def _int_tuple(value: list[Any] | tuple[Any, ...]) -> tuple[int, ...]:
     return tuple(int(item) for item in value)
 
 
-def load_config(path: str | Path = "configs/research.yaml") -> ResearchConfig:
-    config_path = Path(path)
-    if not config_path.exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
+_DEFAULT_CONFIG_PATH = Path("configs/research.yaml")
+_DEFAULT_CONFIG_RESOURCE = "default_research.yaml"
 
-    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+
+def _read_config_text(path: str | Path) -> str:
+    config_path = Path(path)
+    if config_path.exists():
+        return config_path.read_text(encoding="utf-8")
+
+    if config_path == _DEFAULT_CONFIG_PATH:
+        return (
+            resources.files("research")
+            .joinpath(_DEFAULT_CONFIG_RESOURCE)
+            .read_text(encoding="utf-8")
+        )
+
+    raise FileNotFoundError(f"Config file not found: {config_path}")
+
+
+def load_config(path: str | Path = _DEFAULT_CONFIG_PATH) -> ResearchConfig:
+    raw = yaml.safe_load(_read_config_text(path))
     labels = dict(raw["labels"])
     labels["pump_horizons"] = _int_key_dict(labels["pump_horizons"])
     labels["pump_volatility_multipliers"] = _int_key_dict(

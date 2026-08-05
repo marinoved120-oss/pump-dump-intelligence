@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pump-dump-research"
-version = "0.3.0.1"
+version = "0.3.0.2"
 description = "Explainable pump/dump research pipeline with controlled autonomous development"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -32,6 +32,9 @@ pd-orchestrator = "orchestrator.cli:app"
 
 [tool.setuptools.packages.find]
 include = ["research*", "orchestrator*"]
+
+[tool.setuptools.package-data]
+research = ["default_research.yaml"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
