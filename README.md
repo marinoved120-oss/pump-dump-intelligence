@@ -138,6 +138,16 @@ The worker stops whenever a proposal waits for approval or validation fails.
 
 The local orchestrator uses an API model configured by `OPENAI_API_KEY`; it is not connected to this chat session. This chat cannot continue working after the conversation is closed or send Telegram messages by itself. The persistent Docker service performs those functions locally.
 
+## Paper monitor safety preflight
+
+Before any live paper-monitor process is started, validate the strict read-only configuration:
+
+    docker compose run --rm research paper-preflight --project-root /app
+
+The command emits one deterministic JSON line. A safe configuration exits with code 0 and reports status passed. Invalid configuration, unsafe trading or withdrawal settings, production-model updates, unsafe outcome paths, or Binance credential variables cause exit code 2.
+
+Preflight does not contact Binance or Telegram, does not create the outcome file, and never prints credential values. Paper outcomes remain local in the append-only artifacts/paper-outcomes.jsonl file.
+
 ## Research command retained
 
 ```powershell

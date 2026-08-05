@@ -19,10 +19,13 @@ paper_monitor:
       - 60
       - 240
     storage_format: jsonl
+    path: artifacts/paper-outcomes.jsonl
     production_model_updates_enabled: false
 
   safety:
     exchange_trading_enabled: false
     exchange_trading_credentials_allowed: false
     order_placement_enabled: false
+    order_cancellation_enabled: false
     withdrawals_enabled: false
+    automatic_trading_enabled: false
