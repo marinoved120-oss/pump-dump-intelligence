@@ -1,0 +1,28 @@
+paper_monitor:
+  mode: paper_only
+
+  alerts:
+    cooldown_seconds: 900
+    red_min_independent_groups: 3
+
+  telegram:
+    parse_mode: HTML
+    max_message_chars: 4096
+    redact_secrets: true
+    disable_web_page_preview: true
+
+  outcomes:
+    offsets_minutes:
+      - 5
+      - 15
+      - 30
+      - 60
+      - 240
+    storage_format: jsonl
+    production_model_updates_enabled: false
+
+  safety:
+    exchange_trading_enabled: false
+    exchange_trading_credentials_allowed: false
+    order_placement_enabled: false
+    withdrawals_enabled: false
