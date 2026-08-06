@@ -235,3 +235,32 @@ tasks:
       - ROADMAP.yaml
     risk_level: HIGH
     requires_approval: true
+
+  - id: V031-004
+    title: Paper replay consistency and idempotency hardening
+    description: >-
+      Harden the deterministic local paper replay against inconsistent path
+      resolution, partial failures, repeated runs and large malformed inputs.
+      Preserve the existing PaperMonitor behavior, local append-only storage,
+      fail-closed safety checks and zero-network paper-only architecture.
+    acceptance_criteria:
+      - Relative config paths are resolved once against project_root and the same resolved configuration is used by preflight and runtime.
+      - An invalidation for an alert suppressed by cooldown is deterministically suppressed without aborting replay or writing an invalid message.
+      - Failed run reports retain accurate counters for events and local records already processed before the failure.
+      - Restarting replay does not duplicate formatted messages or outcomes already present in their local JSONL stores.
+      - Existing message records receive deterministic identities and malformed existing message storage fails closed before new messages are appended.
+      - JSONL inputs are read line by line with explicit limits for line size and event count instead of loading an unbounded file as text.
+      - Deterministic timestamp ordering and strict immutable event validation remain unchanged.
+      - Regression tests cover project-root config resolution, suppressed-alert invalidation, partial-failure reporting, message restart idempotency and bounded JSONL loading.
+      - The complete test suite, lint checks, compilation and release-integrity checks remain passing without weakening existing safety controls.
+      - No exchange transaction, outbound asset transfer, credential or automatic-trading capability is added.
+    allowed_paths:
+      - research/monitor
+      - research/cli.py
+      - tests/test_paper_monitor_runtime.py
+      - tests/test_paper_monitor.py
+      - README.md
+      - CHANGELOG.md
+      - ROADMAP.yaml
+    risk_level: HIGH
+    requires_approval: true
