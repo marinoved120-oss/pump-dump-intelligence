@@ -12,6 +12,10 @@
 - Run fail-closed preflight before reading replay inputs and emit deterministic redacted JSON reports.
 - Reuse the existing PaperMonitor for cooldown, invalidation and append-only outcome tracking.
 - Prevent duplicate stored outcomes after restart and perform no Binance or Telegram requests.
+- Resolve relative monitor configuration once against project root for consistent preflight and replay runtime behavior.
+- Suppress invalidations for cooldown-suppressed alerts and preserve accurate partial-progress counters on failed replay runs.
+- Add deterministic message identities with restart idempotency and fail-closed validation of existing message storage.
+- Stream replay JSONL inputs with explicit 1 MiB line and 100,000-event limits instead of unbounded whole-file reads.
 
 ## 0.3.0.2 - Paper monitoring packaging release
 

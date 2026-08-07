@@ -11,6 +11,7 @@ from .config import (
     MonitorConfigDocument,
     MonitorConfigError,
     load_monitor_config,
+    resolve_monitor_config_path,
     resolve_outcome_path,
 )
 
@@ -250,13 +251,17 @@ def run_monitor_preflight(
     project_root: str | Path = ".",
     environ: Mapping[str, str] | None = None,
 ) -> MonitorPreflightReport:
-    display_config = _display_path(
+    resolved_config = resolve_monitor_config_path(
         config_path,
+        project_root=project_root,
+    )
+    display_config = _display_path(
+        resolved_config,
         project_root=project_root,
     )
 
     try:
-        config = load_monitor_config(config_path)
+        config = load_monitor_config(resolved_config)
     except MonitorConfigError as exc:
         return MonitorPreflightReport(
             schema_version=1,

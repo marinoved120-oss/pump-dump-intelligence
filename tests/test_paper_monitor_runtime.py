@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -11,9 +12,11 @@ import websockets
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
+import research.monitor.runtime as monitor_runtime
 from research.cli import app
 from research.monitor.runtime import (
     AlertReplayEvent,
+    LocalJsonlMessageSink,
     PaperAnalysisInput,
     run_paper_replay,
 )
@@ -191,6 +194,34 @@ def _message_lines(root: Path) -> list[str]:
     ).read_text(encoding="utf-8").splitlines()
 
 
+def test_replay_resolves_relative_config_from_project_root(
+    tmp_path: Path,
+) -> None:
+    root, _config_path = _project(tmp_path)
+    _write_jsonl(
+        root / "artifacts" / "alerts.jsonl",
+        [_alert_event()],
+    )
+    _write_jsonl(
+        root / "artifacts" / "prices.jsonl",
+        [_price_event(1, 100.0)],
+    )
+
+    report = run_paper_replay(
+        "artifacts/alerts.jsonl",
+        "artifacts/prices.jsonl",
+        "artifacts/messages.jsonl",
+        config_path="configs/monitor.yaml",
+        project_root=root,
+        environ={},
+    )
+
+    assert report.status == "passed"
+    assert report.preflight_status == "passed"
+    assert report.config_path == "configs/monitor.yaml"
+
+
+
 def test_replay_publishes_initial_alert_and_redacts_message(
     tmp_path: Path,
 ) -> None:
@@ -267,6 +298,44 @@ def test_replay_uses_existing_cooldown_and_invalidation_rules(
     assert "INVALIDATION UPDATE" in messages[1]
 
 
+def test_invalidation_of_cooldown_suppressed_alert_is_suppressed(
+    tmp_path: Path,
+) -> None:
+    root, config_path = _project(tmp_path)
+    _write_jsonl(
+        root / "artifacts" / "alerts.jsonl",
+        [
+            _alert_event(),
+            _alert_event(
+                "paper-002",
+                event_ts_ms=1_000,
+                created_ts_ms=1_000,
+            ),
+            {
+                "type": "invalidation",
+                "event_ts_ms": 2_000,
+                "alert_id": "paper-002",
+                "reason": "Full return below breakout level",
+            },
+        ],
+    )
+    _write_jsonl(
+        root / "artifacts" / "prices.jsonl",
+        [_price_event(3_000, 100.0)],
+    )
+
+    report = _run(root, config_path)
+
+    assert report.status == "passed"
+    assert report.alerts_published == 1
+    assert report.alerts_suppressed == 1
+    assert report.invalidations_published == 0
+    assert report.invalidations_suppressed == 1
+    assert report.messages_appended == 1
+    assert len(_message_lines(root)) == 1
+
+
+
 def test_replay_sorts_events_and_records_due_outcomes(
     tmp_path: Path,
 ) -> None:
@@ -333,6 +402,102 @@ def test_restart_does_not_duplicate_stored_outcomes(
     assert second_lines == first_lines
 
 
+def test_restart_does_not_duplicate_stored_messages(
+    tmp_path: Path,
+) -> None:
+    root, config_path = _project(tmp_path)
+    _write_jsonl(
+        root / "artifacts" / "alerts.jsonl",
+        [_alert_event()],
+    )
+    _write_jsonl(
+        root / "artifacts" / "prices.jsonl",
+        [_price_event(1, 100.0)],
+    )
+
+    first = _run(root, config_path)
+    first_lines = _message_lines(root)
+    second = _run(root, config_path)
+    second_lines = _message_lines(root)
+
+    assert first.status == "passed"
+    assert first.messages_appended == 1
+    assert second.status == "passed"
+    assert second.messages_appended == 0
+    assert second_lines == first_lines
+
+    record = json.loads(first_lines[0])
+    assert set(record) == {"message", "message_id"}
+    expected_id = (
+        "sha256:"
+        + hashlib.sha256(
+            record["message"].encode("utf-8")
+        ).hexdigest()
+    )
+    assert record["message_id"] == expected_id
+
+
+
+def test_legacy_existing_message_store_is_idempotent(
+    tmp_path: Path,
+) -> None:
+    messages_path = tmp_path / "messages.jsonl"
+    message = "legacy paper message"
+    original = (
+        json.dumps(
+            {"message": message},
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        + "\n"
+    )
+    messages_path.write_text(
+        original,
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    sink = LocalJsonlMessageSink(messages_path)
+    sink.send(message)
+
+    assert sink.appended == 0
+    assert messages_path.read_text(encoding="utf-8") == original
+
+
+def test_malformed_existing_message_store_fails_before_append(
+    tmp_path: Path,
+) -> None:
+    root, config_path = _project(tmp_path)
+    _write_jsonl(
+        root / "artifacts" / "alerts.jsonl",
+        [_alert_event()],
+    )
+    _write_jsonl(
+        root / "artifacts" / "prices.jsonl",
+        [_price_event(1, 100.0)],
+    )
+
+    messages_path = root / "artifacts" / "messages.jsonl"
+    messages_path.write_text(
+        '{"message":""}\n',
+        encoding="utf-8",
+        newline="\n",
+    )
+    original = messages_path.read_text(encoding="utf-8")
+
+    report = _run(root, config_path)
+
+    assert report.status == "failed"
+    assert report.events_processed == 0
+    assert report.messages_appended == 0
+    assert report.errors == (
+        "existing messages record invalid at line 1",
+    )
+    assert messages_path.read_text(encoding="utf-8") == original
+
+
+
 def test_strict_event_models_reject_unknown_fields_and_mutation() -> None:
     raw = _alert_event()
     raw["unexpected"] = True
@@ -345,6 +510,131 @@ def test_strict_event_models_reject_unknown_fields_and_mutation() -> None:
     )
     with pytest.raises(ValidationError, match="frozen"):
         analysis.market_phase = "distribution"
+
+
+def test_failed_report_retains_completed_runtime_progress(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, config_path = _project(tmp_path)
+    _write_jsonl(
+        root / "artifacts" / "alerts.jsonl",
+        [
+            _alert_event(),
+            {
+                "type": "invalidation",
+                "event_ts_ms": 2_000,
+                "alert_id": "paper-001",
+                "reason": "Full return below breakout level",
+            },
+        ],
+    )
+    _write_jsonl(
+        root / "artifacts" / "prices.jsonl",
+        [_price_event(3_000, 100.0)],
+    )
+
+    original_send = LocalJsonlMessageSink.send
+    send_calls = 0
+
+    def fail_second_send(
+        self: LocalJsonlMessageSink,
+        text: str,
+    ) -> None:
+        nonlocal send_calls
+        send_calls += 1
+        if send_calls == 2:
+            raise OSError("simulated local storage failure")
+        original_send(self, text)
+
+    monkeypatch.setattr(
+        LocalJsonlMessageSink,
+        "send",
+        fail_second_send,
+    )
+
+    report = _run(root, config_path)
+
+    assert report.status == "failed"
+    assert report.events_processed == 1
+    assert report.alerts_published == 1
+    assert report.invalidations_published == 0
+    assert report.messages_appended == 1
+    assert report.errors == (
+        "local replay storage operation failed",
+    )
+    assert len(_message_lines(root)) == 1
+
+
+
+def test_jsonl_event_count_limit_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, config_path = _project(tmp_path)
+    _write_jsonl(
+        root / "artifacts" / "alerts.jsonl",
+        [
+            _alert_event(),
+            _alert_event(
+                "paper-002",
+                event_ts_ms=1_000,
+                created_ts_ms=1_000,
+            ),
+        ],
+    )
+    _write_jsonl(
+        root / "artifacts" / "prices.jsonl",
+        [_price_event(2_000, 100.0)],
+    )
+
+    monkeypatch.setattr(
+        monitor_runtime,
+        "_MAX_JSONL_EVENTS",
+        1,
+        raising=False,
+    )
+
+    report = _run(root, config_path)
+
+    assert report.status == "failed"
+    assert report.events_processed == 0
+    assert report.messages_appended == 0
+    assert report.errors == (
+        "alerts input exceeds maximum event count 1",
+    )
+
+
+def test_jsonl_line_size_limit_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root, config_path = _project(tmp_path)
+    _write_jsonl(
+        root / "artifacts" / "alerts.jsonl",
+        [_alert_event()],
+    )
+    _write_jsonl(
+        root / "artifacts" / "prices.jsonl",
+        [_price_event(1, 100.0)],
+    )
+
+    monkeypatch.setattr(
+        monitor_runtime,
+        "_MAX_JSONL_LINE_BYTES",
+        32,
+        raising=False,
+    )
+
+    report = _run(root, config_path)
+
+    assert report.status == "failed"
+    assert report.events_processed == 0
+    assert report.messages_appended == 0
+    assert report.errors == (
+        "alerts input line 1 exceeds maximum size 32 bytes",
+    )
+
 
 
 def test_malformed_input_fails_closed_with_machine_report(
