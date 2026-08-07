@@ -156,7 +156,11 @@ Replay strict alert, invalidation, and price events from local JSONL files:
 
 The command runs the paper-monitor safety preflight before reading runtime events. Inputs must be normalized JSONL paths under artifacts. Events are processed deterministically by timestamp through the existing PaperMonitor cooldown, invalidation, and outcome logic.
 
-Formatted messages and outcomes remain in append-only local JSONL files. Replay performs no Binance or Telegram requests, exits with code 2 on unsafe or malformed input, and does not duplicate already stored outcomes after restart.
+Formatted messages and outcomes remain in append-only local JSONL files. Replay performs no Binance or Telegram requests and exits with code 2 on unsafe or malformed input.
+
+Relative configuration paths are resolved once against `project_root` and the same resolved configuration is used by preflight and runtime. Replay inputs are streamed line by line with a 1 MiB maximum physical line size and a maximum of 100,000 events per JSONL input.
+
+Stored messages use deterministic SHA-256 identities so replay restart does not append duplicate messages. Existing malformed message storage fails closed before new messages are appended. Cooldown-suppressed alerts also suppress their later invalidations deterministically, and failed replay reports retain counters for work completed before the failure.
 
 ## Research command retained
 

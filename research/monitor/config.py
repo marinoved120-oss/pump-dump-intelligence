@@ -215,6 +215,21 @@ def _format_validation_error(
     )
 
 
+
+def resolve_monitor_config_path(
+    value: str | Path,
+    *,
+    project_root: str | Path = ".",
+) -> Path:
+    candidate = Path(value)
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (
+        Path(project_root).resolve()
+        / candidate
+    ).resolve()
+
+
 def load_monitor_config(
     path: str | Path = _DEFAULT_CONFIG_PATH,
 ) -> MonitorConfigDocument:
@@ -376,5 +391,6 @@ __all__ = [
     "TelegramSettings",
     "build_paper_monitor",
     "load_monitor_config",
+    "resolve_monitor_config_path",
     "resolve_outcome_path",
 ]

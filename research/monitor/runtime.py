@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -21,12 +22,16 @@ from .config import (
     MonitorConfigError,
     build_paper_monitor,
     load_monitor_config,
+    resolve_monitor_config_path,
     resolve_outcome_path,
 )
 from .paper import PaperAlert, PaperAnalysisOutput
 from .preflight import run_monitor_preflight
 
 ReplayStatus = Literal["passed", "failed"]
+
+_MAX_JSONL_LINE_BYTES = 1_048_576
+_MAX_JSONL_EVENTS = 100_000
 
 
 class PaperReplayError(ValueError):
@@ -337,13 +342,95 @@ class PaperReplayReport:
 
 
 class LocalJsonlMessageSink:
-    """Append-only local sink for formatted paper messages."""
+    """Append-only idempotent local sink for paper messages."""
 
     def __init__(self, path: Path) -> None:
         self.path = path
         self.appended = 0
+        self._message_ids = self._load_message_ids()
+
+    @staticmethod
+    def _message_id(text: str) -> str:
+        digest = hashlib.sha256(
+            text.encode("utf-8")
+        ).hexdigest()
+        return f"sha256:{digest}"
+
+    def _load_message_ids(self) -> set[str]:
+        if not self.path.exists():
+            return set()
+
+        message_ids: set[str] = set()
+        try:
+            with self.path.open(
+                "r",
+                encoding="utf-8",
+            ) as handle:
+                for line_number, line in enumerate(
+                    handle,
+                    start=1,
+                ):
+                    if not line.strip():
+                        continue
+                    try:
+                        record = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        raise PaperReplayError(
+                            "existing messages JSON syntax invalid "
+                            f"at line {line_number}"
+                        ) from exc
+
+                    if (
+                        not isinstance(record, dict)
+                        or set(record)
+                        not in (
+                            {"message"},
+                            {"message", "message_id"},
+                        )
+                        or not isinstance(
+                            record.get("message"),
+                            str,
+                        )
+                        or not record["message"]
+                    ):
+                        raise PaperReplayError(
+                            "existing messages record invalid "
+                            f"at line {line_number}"
+                        )
+
+                    expected_id = self._message_id(
+                        record["message"]
+                    )
+                    if "message_id" in record and (
+                        not isinstance(
+                            record["message_id"],
+                            str,
+                        )
+                        or record["message_id"] != expected_id
+                    ):
+                        raise PaperReplayError(
+                            "existing messages message_id invalid "
+                            f"at line {line_number}"
+                        )
+
+                    if expected_id in message_ids:
+                        raise PaperReplayError(
+                            "existing messages contain duplicate "
+                            f"message_id at line {line_number}"
+                        )
+                    message_ids.add(expected_id)
+        except OSError as exc:
+            raise PaperReplayError(
+                "existing messages file cannot be read"
+            ) from exc
+
+        return message_ids
 
     def send(self, text: str) -> None:
+        message_id = self._message_id(text)
+        if message_id in self._message_ids:
+            return
+
         self.path.parent.mkdir(
             parents=True,
             exist_ok=True,
@@ -354,13 +441,18 @@ class LocalJsonlMessageSink:
         ) as handle:
             handle.write(
                 json.dumps(
-                    {"message": text},
+                    {
+                        "message": text,
+                        "message_id": message_id,
+                    },
                     ensure_ascii=False,
                     separators=(",", ":"),
                     sort_keys=True,
                 )
                 + "\n"
             )
+
+        self._message_ids.add(message_id)
         self.appended += 1
 
 
@@ -470,48 +562,78 @@ def _load_jsonl_events(
     role: str,
     adapter: TypeAdapter[object],
 ) -> tuple[_LoadedEvent, ...]:
+    events: list[_LoadedEvent] = []
+
     try:
-        lines = path.read_text(
-            encoding="utf-8"
-        ).splitlines()
+        with path.open("rb") as handle:
+            line_number = 0
+            while True:
+                raw_line = handle.readline(
+                    _MAX_JSONL_LINE_BYTES + 1
+                )
+                if not raw_line:
+                    break
+
+                line_number += 1
+                if len(raw_line) > _MAX_JSONL_LINE_BYTES:
+                    raise PaperReplayError(
+                        f"{role} line {line_number} exceeds "
+                        "maximum size "
+                        f"{_MAX_JSONL_LINE_BYTES} bytes"
+                    )
+
+                try:
+                    line = raw_line.decode("utf-8")
+                except UnicodeDecodeError as exc:
+                    raise PaperReplayError(
+                        f"{role} text encoding invalid "
+                        f"at line {line_number}"
+                    ) from exc
+
+                if not line.strip():
+                    continue
+
+                if len(events) >= _MAX_JSONL_EVENTS:
+                    raise PaperReplayError(
+                        f"{role} exceeds maximum event count "
+                        f"{_MAX_JSONL_EVENTS}"
+                    )
+
+                try:
+                    raw = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise PaperReplayError(
+                        f"{role} JSON syntax invalid "
+                        f"at line {line_number}"
+                    ) from exc
+
+                try:
+                    value = adapter.validate_python(raw)
+                except ValidationError as exc:
+                    detail = _format_validation_error(exc)
+                    raise PaperReplayError(
+                        f"{role} event invalid "
+                        f"at line {line_number}: {detail}"
+                    ) from exc
+
+                events.append(
+                    _LoadedEvent(
+                        event_ts_ms=value.event_ts_ms,
+                        source_rank=source_rank,
+                        line_number=line_number,
+                        value=value,
+                    )
+                )
     except OSError as exc:
         raise PaperReplayError(
             f"{role} file cannot be read"
         ) from exc
 
-    events: list[_LoadedEvent] = []
-    for line_number, line in enumerate(
-        lines,
-        start=1,
-    ):
-        if not line.strip():
-            continue
-        try:
-            raw = json.loads(line)
-        except json.JSONDecodeError as exc:
-            raise PaperReplayError(
-                f"{role} JSON syntax invalid at line {line_number}"
-            ) from exc
-        try:
-            value = adapter.validate_python(raw)
-        except ValidationError as exc:
-            detail = _format_validation_error(exc)
-            raise PaperReplayError(
-                f"{role} event invalid at line {line_number}: {detail}"
-            ) from exc
-        events.append(
-            _LoadedEvent(
-                event_ts_ms=value.event_ts_ms,
-                source_rank=source_rank,
-                line_number=line_number,
-                value=value,
-            )
-        )
-
     if not events:
         raise PaperReplayError(
             f"{role} file contains no events"
         )
+
     return tuple(events)
 
 
@@ -545,6 +667,13 @@ def _failed_report(
     messages_path: str,
     preflight_status: str,
     error: str,
+    events_processed: int = 0,
+    alerts_published: int = 0,
+    alerts_suppressed: int = 0,
+    invalidations_published: int = 0,
+    invalidations_suppressed: int = 0,
+    outcomes_recorded: int = 0,
+    messages_appended: int = 0,
 ) -> PaperReplayReport:
     return PaperReplayReport(
         schema_version=1,
@@ -554,13 +683,13 @@ def _failed_report(
         prices_path=prices_path,
         messages_path=messages_path,
         preflight_status=preflight_status,
-        events_processed=0,
-        alerts_published=0,
-        alerts_suppressed=0,
-        invalidations_published=0,
-        invalidations_suppressed=0,
-        outcomes_recorded=0,
-        messages_appended=0,
+        events_processed=events_processed,
+        alerts_published=alerts_published,
+        alerts_suppressed=alerts_suppressed,
+        invalidations_published=invalidations_published,
+        invalidations_suppressed=invalidations_suppressed,
+        outcomes_recorded=outcomes_recorded,
+        messages_appended=messages_appended,
         errors=(error,),
     )
 
@@ -582,8 +711,12 @@ def run_paper_replay(
     project_root: str | Path = ".",
     environ: Mapping[str, str] | None = None,
 ) -> PaperReplayReport:
-    display_config = _display_path(
+    resolved_config = resolve_monitor_config_path(
         config_path,
+        project_root=project_root,
+    )
+    display_config = _display_path(
+        resolved_config,
         project_root=project_root,
     )
     display_alerts = _display_path(
@@ -600,7 +733,7 @@ def run_paper_replay(
     )
 
     preflight = run_monitor_preflight(
-        config_path,
+        resolved_config,
         project_root=project_root,
         environ=environ,
     )
@@ -621,6 +754,16 @@ def run_paper_replay(
                 or "paper-monitor preflight failed"
             ),
         )
+
+    events_processed = 0
+    alerts_published = 0
+    alerts_suppressed = 0
+    invalidations_published = 0
+    invalidations_suppressed = 0
+    outcomes_recorded = 0
+    existing_outcomes = 0
+    sink: LocalJsonlMessageSink | None = None
+    monitor = None
 
     try:
         resolved_alerts = _resolve_artifact_jsonl(
@@ -676,7 +819,7 @@ def run_paper_replay(
         )
         _validate_event_sequence(events)
 
-        config = load_monitor_config(config_path)
+        config = load_monitor_config(resolved_config)
         outcome_path = resolve_outcome_path(
             config.paper_monitor.outcomes.path,
             project_root=project_root,
@@ -710,10 +853,7 @@ def run_paper_replay(
         existing_outcomes = len(
             monitor.outcomes.records
         )
-        alerts_published = 0
-        alerts_suppressed = 0
-        invalidations_published = 0
-        invalidations_suppressed = 0
+        suppressed_alert_ids: set[str] = set()
 
         for loaded in events:
             event = loaded.value
@@ -730,23 +870,30 @@ def run_paper_replay(
                         alerts_published += 1
                     else:
                         alerts_suppressed += 1
+                        if delivery.reason == "cooldown_active":
+                            suppressed_alert_ids.add(
+                                event.alert.alert_id
+                            )
                 elif isinstance(
                     event,
                     InvalidationReplayEvent,
                 ):
-                    delivery = (
-                        monitor.publish_invalidation(
-                            event.alert_id,
-                            event.reason,
-                            now_ts_ms=(
-                                event.event_ts_ms
-                            ),
-                        )
-                    )
-                    if delivery.sent:
-                        invalidations_published += 1
-                    else:
+                    if event.alert_id in suppressed_alert_ids:
                         invalidations_suppressed += 1
+                    else:
+                        delivery = (
+                            monitor.publish_invalidation(
+                                event.alert_id,
+                                event.reason,
+                                now_ts_ms=(
+                                    event.event_ts_ms
+                                ),
+                            )
+                        )
+                        if delivery.sent:
+                            invalidations_published += 1
+                        else:
+                            invalidations_suppressed += 1
                 else:
                     monitor.capture_due_outcomes(
                         now_ts_ms=event.event_ts_ms,
@@ -758,6 +905,8 @@ def run_paper_replay(
                 raise PaperReplayError(
                     "runtime event sequence rejected"
                 ) from exc
+
+            events_processed += 1
 
         outcomes_recorded = (
             len(monitor.outcomes.records)
@@ -771,7 +920,7 @@ def run_paper_replay(
             prices_path=display_prices,
             messages_path=display_messages,
             preflight_status=preflight.status,
-            events_processed=len(events),
+            events_processed=events_processed,
             alerts_published=alerts_published,
             alerts_suppressed=alerts_suppressed,
             invalidations_published=(
@@ -792,6 +941,22 @@ def run_paper_replay(
             messages_path=display_messages,
             preflight_status=preflight.status,
             error=str(exc),
+            events_processed=events_processed,
+            alerts_published=alerts_published,
+            alerts_suppressed=alerts_suppressed,
+            invalidations_published=invalidations_published,
+            invalidations_suppressed=invalidations_suppressed,
+            outcomes_recorded=(
+                len(monitor.outcomes.records)
+                - existing_outcomes
+                if monitor is not None
+                else outcomes_recorded
+            ),
+            messages_appended=(
+                sink.appended
+                if sink is not None
+                else 0
+            ),
         )
     except OSError:
         return _failed_report(
@@ -801,6 +966,22 @@ def run_paper_replay(
             messages_path=display_messages,
             preflight_status=preflight.status,
             error="local replay storage operation failed",
+            events_processed=events_processed,
+            alerts_published=alerts_published,
+            alerts_suppressed=alerts_suppressed,
+            invalidations_published=invalidations_published,
+            invalidations_suppressed=invalidations_suppressed,
+            outcomes_recorded=(
+                len(monitor.outcomes.records)
+                - existing_outcomes
+                if monitor is not None
+                else outcomes_recorded
+            ),
+            messages_appended=(
+                sink.appended
+                if sink is not None
+                else 0
+            ),
         )
 
 
