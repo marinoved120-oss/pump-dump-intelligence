@@ -264,3 +264,31 @@ tasks:
       - ROADMAP.yaml
     risk_level: HIGH
     requires_approval: true
+
+  - id: V031-005
+    title: Deterministic evidence-to-paper alert adapter
+    description: >-
+      Bridge existing causal, spot/futures, derivatives, manipulation and
+      sequence-integrity outputs into the existing PaperAnalysisOutput and
+      PaperAlert contracts. Reuse existing evidence and scoring without
+      recomputing analytical conclusions, adding network access or starting
+      a live monitor process.
+    acceptance_criteria:
+      - Adapter inputs are immutable and validate exchange, symbol and timestamp consistency across source evidence.
+      - Existing causal assessments provide market phase, pump causes, contradictions, alternatives and invalidation conditions without recomputing causal scores.
+      - Existing spot/futures and derivatives outputs provide spot/futures roles, OI, funding, liquidation and divergence context without parallel analysis.
+      - Existing manipulation reports populate spoofing, iceberg and absorption evidence by hypothesis and market type.
+      - Sequence integrity state supplies conservative data-quality information; inconsistent source identity or invalid quality values fail closed.
+      - Fields with no implemented producer, including technical structure or on-chain/news context, are represented explicitly as unavailable and included in missing-data output rather than fabricated.
+      - Output ordering and alert construction are deterministic for identical inputs.
+      - Tests cover source mapping, missing data, inconsistent sources, deterministic output and preservation of existing scores/confidence.
+      - The complete test suite, changed-file lint, compilation and release-integrity checks pass without weakening safety controls.
+      - No Binance or Telegram request, order placement, cancellation, withdrawal, transfer, credential or automatic-trading capability is added.
+    allowed_paths:
+      - research/monitor
+      - tests/test_paper_monitor_adapter.py
+      - README.md
+      - CHANGELOG.md
+      - ROADMAP.yaml
+    risk_level: HIGH
+    requires_approval: true
